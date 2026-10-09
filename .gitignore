@@ -1,0 +1,2 @@
+# Claude Code の個人用設定（権限など）は公開リポジトリに送らない
+.claude/settings.local.json
