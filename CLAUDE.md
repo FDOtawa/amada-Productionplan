@@ -78,7 +78,8 @@
 - **修正が1つ終わり動作確認できたら、そのたびに** オフライン版を作り直したうえで git commit → git push する（変更内容が分かる日本語のコミットメッセージ）。途中の書きかけは送らない。
 - 送るもの：作業フォルダの全ファイル（客先の生産計画Excel・試し出力Excelも含む）。公開リポジトリで顧客名が公開されることはユーザーに説明済みで、ユーザーが「公開のまま全部送る」を選択。
 - コミットの作成者：FDOtawa / n-otawa@faine.co.jp（ユーザー選択。公開される）。リポジトリ単位の git config で設定済み。
-- GitHub へのサインインは Git Credential Manager（初回はブラウザでユーザー本人がサインイン）。
+- GitHub へのサインインは Git Credential Manager（サインイン済み）。
+- git push の許可：.claude/settings.local.json に "Bash(git push)" / "Bash(git push *)" を追加済み（ユーザー指示。このファイルは .gitignore で公開リポジトリから除外）。2026-10-09 に初回 push 完了（41ファイル）。
 
 ## 実行環境メモ
 - 元はclaude.aiのArtifactとして公開（https://claude.ai/artifact/QtZ97JpQLMa7WV2ELPri2e）。保存は window.claude.use('downloads') を使い、無い環境では <a download> で保存する（両対応済み）。
