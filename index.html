@@ -331,10 +331,11 @@ fitApp(); addEventListener('resize', fitApp);
   const sp = document.getElementById('splash');
   if (!sp) return;
   const box = document.getElementById('spPts');
+  let seed = 20261009; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648; // 毎回同じ並び（録画でちらつかないよう固定）
   for (let i = 0; i < 46; i++) {
-    const d = document.createElement('i'), size = 2 + Math.random() * 5;
+    const d = document.createElement('i'), size = 2 + rnd() * 5;
     d.className = 'sp-pt';
-    d.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;animation-duration:${3 + Math.random() * 3}s;animation-delay:${Math.random() * 3.6}s`;
+    d.style.cssText = `left:${rnd() * 100}%;width:${size}px;height:${size}px;animation-duration:${3 + rnd() * 3}s;animation-delay:${rnd() * 3.6}s`;
     box.appendChild(d);
   }
   const end = () => sp.remove();
