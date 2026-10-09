@@ -1,0 +1,98 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>デザイン案E_モダンダーク</title><link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font-family:"Segoe UI Variable Text","Segoe UI","BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif;font-size:17px;color:var(--ink);background:var(--bg)}
+svg{display:block}
+.app{height:100vh;display:grid;grid-template-rows:60px 1fr 30px}
+.appbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;background:var(--bar);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:16px}.logo-plate{display:flex;align-items:center;border-radius:6px}.logo-plate img{height:26px}
+.appname{font-size:22px;font-weight:700;letter-spacing:.06em}
+.steps{display:flex;align-items:center;gap:12px;font-size:15px}
+.step{display:flex;align-items:center;gap:8px;color:var(--sub)}
+.step .sn{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;border:1.5px solid var(--line2)}
+.step .sn svg{width:14px;height:14px}
+.step.done{color:var(--ink)}.step.done .sn{background:var(--accent);border-color:var(--accent);color:#fff}
+.step.cur{color:var(--accent);font-weight:700}.step.cur .sn{border-color:var(--accent);color:var(--accent)}
+.bar{width:56px;height:2px;background:var(--accent);border-radius:2px;opacity:.6}
+.appbar-r{justify-self:end}.ver{font-size:13px;color:var(--sub);border:1px solid var(--line);padding:2px 10px;border-radius:999px}
+main{width:min(1720px,100%);margin:0 auto;padding:18px 40px;display:flex;flex-direction:column;gap:16px;justify-content:space-between;min-height:0}
+.card,.btn-run{flex:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 22px 18px}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.card-h .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}.card-h .ic svg{width:20px;height:20px}
+.card-h h2{margin:0;font-size:20px;letter-spacing:.04em}
+.badge{margin-left:auto;font-size:14px;font-weight:700;padding:3px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.sel{margin-left:auto;font-size:15px;color:var(--sub)}.sel b{color:var(--accent)}
+.drop{display:flex;align-items:center;gap:22px;padding:16px 26px;border:2px dashed var(--line2);border-radius:12px;background:var(--drop)}
+.drop .up{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);flex:none}.drop .up svg{width:34px;height:34px}
+.dtext strong{display:block;font-size:20px;margin-bottom:2px}.dtext small{font-size:14px;color:var(--sub)}
+.btn-ghost{margin-left:auto;padding:10px 22px;border:1px solid var(--line2);border-radius:8px;font-weight:700;font-size:15px;background:var(--card);color:var(--ink)}
+.files{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.fcard{display:flex;align-items:center;gap:14px;height:56px;padding:0 16px;border:1px solid var(--line);border-radius:10px;background:var(--card2)}
+.fcard .xls svg{width:30px;height:30px}
+.fn{display:flex;flex-direction:column;line-height:1.25;min-width:0}.fn b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fn small{font-size:12.5px;color:var(--sub)}
+.fcard.empty{border-style:dashed;background:transparent}.fcard.empty b{font-weight:400;color:var(--sub)}
+.fcard.picked{border:2px solid var(--accent);background:var(--accent-soft)}
+.fcard .pk{margin-left:auto;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center}.fcard .pk svg{width:14px;height:14px}
+.clearrow{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:12px}
+.hint{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;color:var(--warn)}.hint svg{width:18px;height:18px}
+.btn-clear{width:calc(50% - 5px);height:44px;display:flex;align-items:center;justify-content:center;gap:10px;font:inherit;font-weight:700;font-size:17px;border-radius:10px;cursor:pointer;background:var(--clear-bg);color:var(--clear-ink);border:1px solid var(--clear-line)}
+.btn-clear svg{width:20px;height:20px}
+.mcard{position:relative}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.tcol{display:flex;flex-direction:column;gap:6px}
+.tile{display:flex;align-items:center;gap:14px;height:40px;padding:0 16px;border:1px solid var(--line);border-radius:9px;background:var(--card2);font-size:17px;cursor:pointer}
+.tile .dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;flex:none;background:var(--card)}
+.tile.on{border:2px solid var(--accent);background:var(--accent-soft);font-weight:700;color:var(--accent-ink)}
+.tile.on .dot{background:var(--accent);border-color:var(--accent);color:#fff}.tile.on .dot svg{width:12px;height:12px}
+.tile.blank{visibility:hidden}
+.btn-mclear{position:absolute;right:22px;bottom:18px;width:calc(50% - 30px);height:40px;font:inherit;font-size:15px;font-weight:700;border-radius:9px;cursor:pointer;background:var(--card);color:var(--ink);border:1px solid var(--line2)}
+.btn-run{height:76px;display:flex;align-items:center;justify-content:center;gap:16px;font:inherit;font-size:26px;font-weight:700;letter-spacing:.3em;color:#fff;border:0;border-radius:14px;cursor:pointer;background:var(--run);box-shadow:var(--run-shadow)}
+.btn-run svg{width:28px;height:28px}
+.status{display:flex;align-items:center;gap:12px;padding:0 20px;font-size:13px;color:var(--sub);background:var(--bar);border-top:1px solid var(--line)}
+.status .ok{width:8px;height:8px;border-radius:50%;background:#2EA44F}.status .sep{width:1px;height:12px;background:var(--line2)}.status .r{margin-left:auto}
+
+:root{--bg:#15181D;--bar:#1B1F25;--card:#1F242B;--card2:#252B33;--ink:#E8ECF0;--sub:#9AA4AF;--line:#2E353E;--line2:#46505B;
+--accent:#E5483F;--accent-soft:rgba(229,72,63,.14);--accent-ink:#FF8A82;--drop:#1A1E24;--warn:#FF7B72;
+--shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.35);
+--clear-bg:#2A3038;--clear-ink:#F2F4F6;--clear-line:#46505B;
+--run:linear-gradient(135deg,#F0594F,#D7261E 60%,#B51D16);--run-shadow:0 8px 22px rgba(215,38,30,.35)}
+body{background:radial-gradient(1000px 500px at 80% -10%,rgba(229,72,63,.10),transparent 60%),#15181D}
+.logo-plate{background:#fff;padding:5px 10px}
+.btn-ghost{background:#252B33}
+</style></head><body>
+<div class="app">
+  <header class="appbar">
+    <div class="brand"><span class="logo-plate"><img src="../logo.png" alt="AMADA"></span><span class="appname">生産計画抽出</span></div>
+    <nav class="steps">
+      <span class="step done"><span class="sn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>ファイル取り込み</span><span class="bar"></span>
+      <span class="step done"><span class="sn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>機種選択</span><span class="bar"></span>
+      <span class="step cur"><span class="sn">3</span>処理開始</span>
+    </nav>
+    <div class="appbar-r"><span class="ver">Ver 1.0</span></div>
+  </header>
+  <main>
+    <section class="card">
+      <div class="card-h"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span><h2>ファイル取り込み</h2><span class="badge">2 / 4</span></div>
+      <div class="drop">
+        <span class="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5"/><path d="M12 12v8M8.5 15.5 12 12l3.5 3.5"/></svg></span>
+        <div class="dtext"><strong>ここにExcelファイルをドラッグ＆ドロップ</strong><small>画面のどこにでもドロップできます。あと2つ追加できます（.xlsx / .xlsm / .xls）</small></div>
+        <span class="btn-ghost">ファイルを選択</span>
+      </div>
+      <div class="files">
+        <div class="fcard"><span class="xls"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="3" fill="#1D7A45"/><path d="M7.5 8l4 8M11.5 8l-4 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M14 8.5h5M14 12h5M14 15.5h5" stroke="#9FE0B8" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="fn"><b>EML日程表(10～3月)_20261003.xls</b><small>ファイル1・2シート</small></span></div>
+        <div class="fcard picked"><span class="xls"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="3" fill="#1D7A45"/><path d="M7.5 8l4 8M11.5 8l-4 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M14 8.5h5M14 12h5M14 15.5h5" stroke="#9FE0B8" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="fn"><b>ACIES日程表(10～3月)_20261003.xls</b><small>ファイル2・2シート</small></span><span class="pk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+        <div class="fcard empty"><span class="fn"><b>ファイル3：未選択</b></span></div>
+        <div class="fcard empty"><span class="fn"><b>ファイル4：未選択</b></span></div>
+      </div>
+      <div class="clearrow"><span class="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>間違ったファイル（複数選択可）を選択しファイルクリアボタンを押す</span><button class="btn-clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h13M5.5 14.5l8-8a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12 18H8.5z"/></svg>ファイルクリア</button></div>
+    </section>
+    <section class="card mcard">
+      <div class="card-h"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><h2>機種選択</h2><span class="sel">選択中：<b>複合機</b></span></div>
+      <div class="tiles"><div class="tcol"><label class="tile"><span class="dot"></span><span class="tname">HG</span></label><label class="tile"><span class="dot"></span><span class="tname">EGB制御盤</span></label><label class="tile"><span class="dot"></span><span class="tname">EGB別盤</span></label><label class="tile"><span class="dot"></span><span class="tname">HRB　集計</span></label><label class="tile"><span class="dot"></span><span class="tname">HRB　土岐</span></label><label class="tile"><span class="dot"></span><span class="tname">HRB　KD</span></label><label class="tile"><span class="dot"></span><span class="tname">HRB　大型</span></label><label class="tile"><span class="dot"></span><span class="tname">HRB　ATC盤</span></label></div><div class="tcol"><label class="tile on"><span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="tname">複合機</span></label><label class="tile"><span class="dot"></span><span class="tname">レーザ</span></label><label class="tile"><span class="dot"></span><span class="tname">AE</span></label><label class="tile"><span class="dot"></span><span class="tname">発振器</span></label><label class="tile"><span class="dot"></span><span class="tname">小板発振器</span></label><label class="tile"><span class="dot"></span><span class="tname">FLW</span></label><div class="tile blank"></div><div class="tile blank"></div></div></div>
+      <button class="btn-mclear">クリア</button>
+    </section>
+    <button class="btn-run"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg><span>処理開始</span></button>
+  </main>
+  <footer class="status"><span class="ok"></span><span>準備完了</span><span class="sep"></span><span>取り込みファイル 2 / 4</span><span class="sep"></span><span>機種：複合機</span><span class="r">2026.10.09</span></footer>
+</div>
+</body></html>

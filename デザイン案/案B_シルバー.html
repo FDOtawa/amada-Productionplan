@@ -1,0 +1,92 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>デザイン案B_シルバー</title><link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font-family:"BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif;font-size:18px;color:var(--ink);background:var(--bg)}
+.app{height:100vh;display:grid;grid-template-rows:64px 1fr 32px}
+.titlebar{display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.brand{display:flex;align-items:center;gap:18px}.logo-plate{display:flex;align-items:center}.logo-plate img{height:30px;display:block}
+.appname{font-size:30px;font-weight:700;letter-spacing:.08em}
+.tb-right{display:flex;gap:22px;align-items:center;font-size:15px}
+main{width:min(1760px,100%);margin:0 auto;padding:16px 40px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;min-height:0}
+.panel,.btn-run{flex:none}
+.panel h2{margin:0;display:flex;align-items:center;gap:12px;font-size:21px;letter-spacing:.08em}
+.no{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:17px;font-weight:700}
+.panel-body{padding:14px 22px}
+.drop{display:flex;align-items:center;gap:26px;padding:16px 32px;min-height:112px}
+.drop .tri{width:68px;height:60px;flex:none}.drop strong{display:block;font-size:23px;margin-bottom:4px}.drop small{font-size:15px;color:var(--sub)}
+.files{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.slot{display:flex;align-items:center;gap:14px;min-height:50px;padding:0 18px;font-weight:700;font-size:18px}
+.slot .sno{flex:none;display:inline-grid;place-items:center;width:28px;height:28px;font-size:15px}
+.slot.empty{font-weight:400;color:var(--sub)}
+.clearrow{display:flex;justify-content:flex-end;align-items:center;gap:16px;margin-top:12px}
+.hint{font-weight:700;font-size:16px}
+.btn-clear{width:calc(50% - 6px);height:46px;font:inherit;font-weight:700;font-size:19px;letter-spacing:.12em;cursor:pointer}
+.mbody{position:relative}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px}
+.mcol{display:flex;flex-direction:column;gap:2px}
+.opt{display:flex;align-items:center;gap:14px;height:40px;padding:0 16px;font-size:19px;cursor:pointer}
+.opt .radio{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center}
+.opt.on .radio::after{content:"";width:12px;height:12px;border-radius:50%}
+.opt.on{font-weight:700}.opt.blank{visibility:hidden}
+.btn-mclear{position:absolute;right:22px;bottom:18px;width:150px;height:42px;font:inherit;font-size:17px;cursor:pointer}
+.btn-run{height:80px;font:inherit;font-size:30px;font-weight:700;letter-spacing:.4em;display:flex;align-items:center;justify-content:center;gap:16px;cursor:pointer}
+.btn-run .no{width:38px;height:38px;font-size:20px;letter-spacing:0}
+.statusbar{display:flex;align-items:center;gap:0;font-size:14px;padding:0 16px}
+.statusbar span{padding:0 18px}.statusbar .sb-right{margin-left:auto}
+
+:root{--ink:#1D2125;--sub:#5D646B;--line:#9CA3AA}
+body{background:linear-gradient(#DADEE2,#BFC5CB) fixed}
+.titlebar{background:linear-gradient(#4A5058,#24282D);color:#F2F4F6;border-bottom:3px solid #0F7BC4}
+.logo-plate{background:linear-gradient(#fff,#E6E8EA);border-radius:4px;padding:6px 12px;border:1px solid #8D949B}.tb-ver{color:#9FD3F5}
+.panel{background:linear-gradient(#F4F5F6,#E3E6E9);border:1px solid #8F979F;border-radius:4px;box-shadow:inset 0 1px 0 #fff,0 1px 3px rgba(0,0,0,.2)}
+.panel h2{padding:10px 18px 0;color:#1F2C38}
+.no{background:linear-gradient(#2E9BE0,#0F6FB0);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.drop{border:1px solid #8F979F;border-radius:3px;background:linear-gradient(#FFFFFF,#EEF2F5);box-shadow:inset 0 2px 4px rgba(0,0,0,.12)}.drop .tri path{fill:#0F7BC4}
+.slot{border:1px solid #8F979F;border-radius:3px;background:#fff;box-shadow:inset 0 1px 3px rgba(0,0,0,.12)}.slot .sno{background:linear-gradient(#F1F3F5,#D5DADF);border:1px solid #9AA1A8;border-radius:3px}
+.slot.picked{background:linear-gradient(#3AA0E3,#1679BD);color:#fff;border-color:#0E5F96}.slot.picked .sno{color:#1D2125}
+.hint{color:#B71C1C}
+.btn-clear{background:linear-gradient(#FFF6C8,#F2D25A);border:1px solid #A88A1E;border-radius:3px;box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(0,0,0,.25)}
+.mgrid{background:#fff;border:1px solid #8F979F;box-shadow:inset 0 2px 4px rgba(0,0,0,.1);padding:8px 10px;border-radius:3px}
+.opt{border-radius:3px}.opt:hover{background:#E8F3FB}.opt .radio{border:1px solid #6E767E;background:linear-gradient(#fff,#E2E5E8);box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
+.opt.on{background:linear-gradient(#DDEFFC,#C4E2F7);outline:1px solid #7FB8E0}.opt.on .radio::after{background:#0F6FB0}
+.btn-mclear{bottom:28px;right:32px;background:linear-gradient(#FDFDFD,#D3D8DD);border:1px solid #7E868E;border-radius:3px;box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(0,0,0,.25)}
+.btn-run{background:linear-gradient(#5DB4EC,#1A7FC6 50%,#1269A8);color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35);border:1px solid #0D4E7D;border-radius:5px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 3px 6px rgba(0,0,0,.3)}
+.btn-run .no{background:#fff;color:#1269A8;text-shadow:none}
+.statusbar{background:linear-gradient(#E9ECEF,#CDD2D7);border-top:1px solid #8F979F;color:#2E353B}.statusbar span{border-right:1px solid #A3AAB1}.statusbar .sb-right{border-right:0}
+</style></head><body>
+<div class="app">
+  <header class="titlebar">
+    <div class="brand"><span class="logo-plate"><img src="../logo.png" alt="AMADA"></span><span class="appname">生産計画抽出</span></div>
+    <div class="tb-right"><span class="tb-item">Production Plan Extractor</span><span class="tb-ver">Ver 1.0</span></div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2><span class="no">1</span>ファイル取り込み</h2>
+      <div class="panel-body">
+        <div class="drop">
+          <svg class="tri" viewBox="0 0 64 56"><path d="M32 2 62 54H2Z"/></svg>
+          <div><strong>あと2つファイルを追加できます</strong><small>画面のどこにでもドラッグ＆ドロップできます。複数まとめて選ぶこともできます（.xlsx / .xlsm / .xls）</small></div>
+        </div>
+        <div class="files">
+          <div class="slot"><span class="sno">1</span><span class="fname">EML日程表(10～3月)_20261003.xls</span></div>
+          <div class="slot picked"><span class="sno">2</span><span class="fname">ACIES日程表(10～3月)_20261003.xls</span></div>
+          <div class="slot empty"><span class="sno">3</span><span class="fname">未選択</span></div>
+          <div class="slot empty"><span class="sno">4</span><span class="fname">未選択</span></div>
+        </div>
+        <div class="clearrow"><span class="hint">間違ったファイル（複数選択可）を選択しファイルクリアボタンを押す</span><button class="btn-clear">ファイルクリア</button></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2><span class="no">2</span>機種選択</h2>
+      <div class="panel-body mbody">
+        <div class="mgrid">
+          <div class="mcol"><label class="opt"><span class="radio"></span><span>HG</span></label><label class="opt"><span class="radio"></span><span>EGB制御盤</span></label><label class="opt"><span class="radio"></span><span>EGB別盤</span></label><label class="opt"><span class="radio"></span><span>HRB　集計</span></label><label class="opt"><span class="radio"></span><span>HRB　土岐</span></label><label class="opt"><span class="radio"></span><span>HRB　KD</span></label><label class="opt"><span class="radio"></span><span>HRB　大型</span></label><label class="opt"><span class="radio"></span><span>HRB　ATC盤</span></label></div>
+          <div class="mcol"><label class="opt on"><span class="radio"></span><span>複合機</span></label><label class="opt"><span class="radio"></span><span>レーザ</span></label><label class="opt"><span class="radio"></span><span>AE</span></label><label class="opt"><span class="radio"></span><span>発振器</span></label><label class="opt"><span class="radio"></span><span>小板発振器</span></label><label class="opt"><span class="radio"></span><span>FLW</span></label><label class="opt blank"><span class="radio"></span><span></span></label><label class="opt blank"><span class="radio"></span><span></span></label></div>
+        </div>
+        <button class="btn-mclear">クリア</button>
+      </div>
+    </section>
+    <button class="btn-run"><span class="no">3</span>処理開始</button>
+  </main>
+  <footer class="statusbar"><span>準備完了</span><span>取り込みファイル 2 / 4</span><span>機種：複合機</span><span class="sb-right">2026.10.09</span></footer>
+</div>
+</body></html>
