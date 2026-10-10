@@ -547,7 +547,15 @@ const colVal = (c, x) => c.value !== undefined ? c.value : x[c.key];
 // 両方にあれば(新)を採用、片方だけならその行を採用して1つのリストにする。1行目が見出し、3行目以降がデータ。
 const LARGE = { NEW: '(新)ベンダー大型', OLD: '(旧)ベンダー大型', PREFIX: 'TY', FIRST_DATA_ROW: 2, A: 0, B: 1, D: 3, E: 4, J: 9 };
 // HG：同じ対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 を読み、A列の先頭から「HG」を取り除く（ほかは HRB 大型と同じ）
-const MIDDLE_HG = { ...LARGE, NEW: '(新)ベンダー中型', OLD: '(旧)ベンダー中型', PREFIX: 'HG' };
+const MIDDLE_HG = { ...LARGE, NEW: '(新)ベンダー中型', OLD: '(旧)ベンダー中型', PREFIX: 'HG', NOTE: hgNote };
+// HGの備考：機種名に「ATC」があれば ATC、「ARM」があれば ARM（上位ルール）。それ以外はシリアル（HG削除後）の下から4桁目が 2→Y化 Σ10、8→B&R、ほかは空欄
+function hgNote(model, serial) {
+  const m = String(model).normalize('NFKC').toUpperCase();
+  if (m.includes('ATC')) return 'ATC';
+  if (m.includes('ARM')) return 'ARM';
+  const d = String(serial).length >= 4 ? String(serial).slice(-4, -3) : '';
+  return d === '2' ? 'Y化 Σ10' : d === '8' ? 'B&R' : '';
+}
 const trimAll = v => (v === undefined || v === null) ? '' : String(v).replace(/^\s+|\s+$/g, ''); // \s は半角・全角スペース、見えない空白、タブ、改行を含む
 const findSheet = (wb, want) => wb.SheetNames.find(n => n.normalize('NFKC').replace(/\s/g, '') === want);
 // 生産月「09月」→「2026年9月」：年は本アプリで処理した日で決める（実行月が5月以降なら1〜4月は翌年）
@@ -630,7 +638,8 @@ function extractLarge(XLSX, wb, cfg = LARGE) {
     const mdl = x.model.normalize('NFKC').toUpperCase(), hrbc = mdl.startsWith('HRBC');
     const dest = mdl.includes('EXP') || hrbc ? 'EXP' : 'DMS';
     return { row: x.row, sheet: x.from, month: prodMonthLabel(x.monthRaw, runDate), model: x.model, serial: x.serial, dest,
-      country: hrbc ? '中国' : dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, jit: toDate(x.jitRaw) };
+      country: hrbc ? '中国' : dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, jit: toDate(x.jitRaw),
+      note: cfg.NOTE ? cfg.NOTE(x.model, x.serial) : '' };
   });
   return { rows, excluded: [], noMark: rows.filter(x => !x.jit), prodYear: null, prodMonth: null, dupBoth: nw.length + old.length - picked.length };
 }
@@ -762,7 +771,7 @@ const PROCESSORS = {
     validate: (wb) => validateLarge(XLSX, wb, MIDDLE_HG),
     extract:  (wb) => extractLarge(XLSX, wb, MIDDLE_HG),
     columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
-      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }],
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }, { key: 'note', label: '備考' }],
     outName: 'JIT日一覧',
     earliestYM: true,
     sortKey: 'jit',
