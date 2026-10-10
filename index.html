@@ -848,6 +848,76 @@ function extractFukugo(XLSX, ws){
   return { rows, excluded: [], noMark, prodYear, prodMonth };
 }
 
+// 「HRB 土岐」（ファイン電子用生産機資料）：1行目が見出し（A=区分、B=生産月、F=機種名、G=仕向地、H=ＳＥＲ、I=客先名、J=組立着手日）、2行目以降がデータ。
+// F列の先頭3文字が HRB・SRB の行だけを残す。仕向：G列が「国内」なら DMS（国名＝日本）、それ以外は EXP（国名は客先名から。分からなければ空欄）。
+// 出荷先：I列が AAI なら「KD」、それ以外は「土岐」。JIT日：J列が日付ならその日付、日付以外なら「未定」。シリアル（H列）が空欄でも出力する
+const TOKI = { B: 1, F: 5, G: 6, H: 7, I: 8, J: 9, KEEP: ['HRB', 'SRB'] };
+// 仕向が EXP なのに機種名に「EXP」が無いときは、機種名（HRB・HRBC・SRB＋数字）の直後に「.EXP」を入れる。
+// ATC が付いている場合も数字の直後＝ATC の前に入り、ATC との間は「.」で区切る
+// （例：HRB1303 AAI → HRB1303.EXP AAI、HRB1003.ATC → HRB1003.EXP.ATC、HRB1003ATC AAI → HRB1003.EXP.ATC AAI）
+function addExp(model){
+  if (/EXP/i.test(model.normalize('NFKC'))) return model;
+  const m = model.match(/^([A-Za-zＡ-Ｚａ-ｚ]+[0-9０-９]+)(.*)$/);
+  if (!m) return model + '.EXP';
+  return m[1] + '.EXP' + (/^ATC/i.test(m[2].normalize('NFKC')) ? '.' : '') + m[2];
+}
+// SRB の「.CE」は仕向（CE）を表す：機種名に .EXP は付けず、仕向を「CE」にする
+const isCE = model => /^SRB.*\.CE(?![A-Z])/.test(model.normalize('NFKC').toUpperCase());
+// 国名の補い（2026-10-10 ユーザー指示）：客先名（I列）で国が分からないときは、G列の仕向地から判断する
+// （アマダアメリカ→米国、アマダタイランド→タイ、ヨーロッパＳＡ→欧州 など。オーバーシーズ・アジアパシフィックなどは空欄）
+function tokiCountryOfG(g){
+  const t = String(g).normalize('NFKC');
+  if (/ヨーロッパ|EUROPE/i.test(t)) return '欧州';
+  return countryOf(t);
+}
+// 出荷先が KD になる AAI の行：I列（客先名）が AAI、またはI列が空欄でもA列の区分か機種名が AAI（2026-10-10 ユーザー指示）
+function isAAI(customer, kubun, model){
+  const u = v => String(v).normalize('NFKC').toUpperCase().trim();
+  return u(customer) === 'AAI' || u(kubun) === 'AAI' || /(?<![A-Z])AAI(?![A-Z])/.test(u(model));
+}
+function validateToki(XLSX, ws){
+  if (!ws || !ws['!ref']) return ['シートにデータがありません。'];
+  const errs = [], range = XLSX.utils.decode_range(ws['!ref']);
+  const head = c => { const cell = ws[XLSX.utils.encode_cell({ r: 0, c })]; return cell ? norm(cell.v).replace(/\s/g, '').toUpperCase() : ''; };
+  const need = [[TOKI.B, 'B', '生産月'], [TOKI.F, 'F', '機種名'], [TOKI.G, 'G', '仕向地'], [TOKI.H, 'H', 'SER'], [TOKI.I, 'I', '客先名'], [TOKI.J, 'J', '着手日']];
+  const miss = need.filter(([c, , w]) => !head(c).includes(w));
+  if (miss.length) errs.push(`項目の定義：1行目に見出し（${miss.map(([, l, w]) => `${l}列「${w === 'SER' ? 'ＳＥＲ' : w === '着手日' ? '組立着手日' : w}」`).join('、')}）がありません。`);
+  let f = 0;
+  for (let r = 1; r <= range.e.r; r++) { const cell = ws[XLSX.utils.encode_cell({ r, c: TOKI.F })]; if (cell && norm(cell.v)) f++; }
+  if (!f) errs.push('列の定義：2行目以降のF列に機種名がありません。');
+  return errs;
+}
+function extractToki(XLSX, ws){
+  if (!ws || !ws['!ref']) return { error: 'シートにデータがありません。' };
+  const range = XLSX.utils.decode_range(ws['!ref']), runDate = new Date();
+  const cellAt = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
+  const text = (r, c) => { const cell = cellAt(r, c); return cell ? String(cell.w !== undefined && typeof cell.v !== 'number' ? cell.w : cell.v).trim() : ''; };
+  const rows = [], excluded = [];
+  let ymKey = 0, prodYear = null, prodMonth = null;
+  for (let r = 1; r <= range.e.r; r++) {
+    const model = text(r, TOKI.F);
+    if (!model) continue;
+    const serial = text(r, TOKI.H);
+    const head = model.normalize('NFKC').toUpperCase().slice(0, 3);
+    if (!TOKI.KEEP.includes(head)) { excluded.push({ row: r + 1, model, serial, reason: '機種名が HRB・SRB ではない' }); continue; }
+    const monthRaw = text(r, TOKI.B).normalize('NFKC');
+    const ym = monthRaw.match(/^(\d{4})\D?(\d{1,2})$/); // 「202610」「2026/10」など
+    const month = ym ? `${+ym[1]}年${+ym[2]}月` : prodMonthLabel(monthRaw, runDate);
+    if (ym && (!ymKey || +ym[1] * 12 + +ym[2] < ymKey)) { ymKey = +ym[1] * 12 + +ym[2]; prodYear = +ym[1]; prodMonth = +ym[2]; }
+    // 機種名に「AAI」があれば、仕向＝EXP・客先名＝AAI・出荷先＝KD・国名＝米国（2026-10-10 ユーザー指示。この行はこれを優先）
+    const aaiModel = /(?<![A-Z])AAI(?![A-Z])/.test(model.normalize('NFKC').toUpperCase());
+    const dest = aaiModel ? 'EXP' : isCE(model) ? 'CE' : norm(text(r, TOKI.G)) === '国内' ? 'DMS' : 'EXP';
+    const customer = aaiModel ? 'AAI' : text(r, TOKI.I);
+    const country = aaiModel ? '米国' : dest === 'DMS' ? '日本' : /^HRBC/.test(model.normalize('NFKC').toUpperCase()) ? '中国' // HRBC は中国（HRB 大型と同じ）
+      : (countryOf(customer) || tokiCountryOfG(text(r, TOKI.G))); // 客先名で分からなければG列の仕向地で補う
+    const jc = cellAt(r, TOKI.J), jd = jc && (jc.v instanceof Date || typeof jc.v === 'number') ? toDate(jc.v) : null;
+    rows.push({ row: r + 1, month, model: dest === 'EXP' ? addExp(model) : model, dest, country, serial, customer,
+      shipTo: aaiModel || isAAI(customer, text(r, 0), model) ? 'KD' : '土岐', jit: jd || '未定',
+      aesa: /AESA/.test(model.normalize('NFKC').toUpperCase()) || norm(text(r, 0)).toUpperCase() === 'AESA' }); // AESA の行（制御盤のシートには出さない）
+  }
+  return { rows, excluded, noMark: [], prodYear, prodMonth };
+}
+
 // Excelの列幅の単位（半角1文字=1）で文字の幅を見積もる。印刷時（改ページプレビューの自動調整）でも切れないよう、半角・半角カナ=1.25、全角=2.4 で見積もる
 function textWidth(v) {
   let w = 0;
@@ -963,10 +1033,10 @@ function extractLarge(XLSX, wb, cfg = LARGE) {
   return { rows, excluded: [], noMark: rows.filter(x => !x.jit), prodYear: null, prodMonth: null, dupBoth: nw.length + old.length - picked.length };
 }
 
-function buildWorkbook(XLSX, rows, proc) {
-  const cols = proc.columns;
+// 帳票の1シート分を作る（見出し＋データ、日付の書式、列幅、フィルター、余白、罫線用の空セル）
+function makeSheet(XLSX, rows, cols) {
   const aoa = [cols.map(c => c.label)];
-  rows.forEach(x => aoa.push(cols.map(c => c.date ? (colVal(c, x) || null) : (colVal(c, x) ?? ''))));
+  rows.forEach(x => aoa.push(cols.map(c => c.date ? (colVal(c, x) || null) : (colVal(c, x) ?? '')))); // 日付の列は Date、または「未定」などの文字
   const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
   cols.forEach((col, ci) => {
     if (!col.date) return;
@@ -978,7 +1048,7 @@ function buildWorkbook(XLSX, rows, proc) {
   // 列幅：見出しと全データのうち最も長い文字に合わせる（全ての文字が表示され、印刷でも切れない）
   // 見出しはフィルターの▼ボタンの分（+2）を足す。全体の幅は setA4Print の「横1ページに収める」で印刷範囲内に縮小される
   ws['!cols'] = cols.map(c => ({ wch: Math.min(255, Math.ceil(Math.max(textWidth(c.label) + 2,
-    ...rows.map(x => textWidth(c.date ? fmt(colVal(c, x)) : (colVal(c, x) ?? '')))) + 3)) }));
+    ...rows.map(x => { const v = colVal(c, x); return textWidth(c.date && v instanceof Date ? fmt(v) : (v ?? '')); })) + 3)) }));
   ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: cols.length - 1 } }) };
   ws['!margins'] = { left: 0.4, right: 0.4, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 };
   // 罫線を全セルに引くため、空欄のセルも作っておく
@@ -986,14 +1056,23 @@ function buildWorkbook(XLSX, rows, proc) {
     const a = XLSX.utils.encode_cell({ r, c });
     if (!ws[a]) ws[a] = { t: 's', v: '' };
   }
+  return ws;
+}
+// 帳票（Excel）を作る。proc.sheets があればシートを複数作る（{ name, filter: 行を選ぶ関数, columns: 省略時は proc.columns }）
+function sheetPlan(rows, proc) {
+  return proc.sheets ? proc.sheets.map(sh => ({ name: sh.name, cols: sh.columns || proc.columns, rows: sh.filter ? rows.filter(sh.filter) : rows }))
+    : [{ name: proc.outName, cols: proc.columns, rows }];
+}
+function buildWorkbook(XLSX, rows, proc) {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, proc.outName);
-  // 印刷時に1行目（見出し）を各ページの先頭に出す
-  wb.Workbook = { Names: [{ Name: '_xlnm.Print_Titles', Sheet: 0, Ref: `'${proc.outName}'!$1:$1` }] };
+  const plan = sheetPlan(rows, proc);
+  plan.forEach(sh => XLSX.utils.book_append_sheet(wb, makeSheet(XLSX, sh.rows, sh.cols), sh.name));
+  // 印刷時に1行目（見出し）を各ページの先頭に出す（シートごと）
+  wb.Workbook = { Names: plan.map((sh, i) => ({ Name: '_xlnm.Print_Titles', Sheet: i, Ref: `'${sh.name}'!$1:$1` })) };
   return setA4Print(XLSX, XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellDates: true }));
 }
 // 罫線（全セルに細線）と見出し行（1行目）の薄い青の網掛け。SheetJS（無償版）は書式を書けないため styles.xml とシートXMLを直接直す
-function addGridAndHeader(XLSX, zip, sheetEnt) {
+function addGridAndHeader(XLSX, zip, sheetEnts) {
   const st = XLSX.CFB.find(zip, '/xl/styles.xml');
   if (!st) return;
   let sx = new TextDecoder().decode(st.content);
@@ -1016,6 +1095,7 @@ function addGridAndHeader(XLSX, zip, sheetEnt) {
     return `<cellXfs count="${xfs.length + add.length}">${xfs.join('')}${add.join('')}</cellXfs>`;
   });
   st.content = new TextEncoder().encode(sx); st.size = st.content.length;
+  sheetEnts.forEach(sheetEnt => {
   let xml = new TextDecoder().decode(sheetEnt.content);
   xml = xml.replace(/<c r="([A-Z]+)(\d+)"([^>]*?)(\/?)>/g, (m, col, row, attrs, close) => {
     const cur = +((attrs.match(/\bs="(\d+)"/) || [])[1] || 0);
@@ -1025,20 +1105,24 @@ function addGridAndHeader(XLSX, zip, sheetEnt) {
     return `<c r="${col}${row}"${attrs}${close}>`;
   });
   sheetEnt.content = new TextEncoder().encode(xml); sheetEnt.size = sheetEnt.content.length;
+  });
 }
 // 印刷設定：A4縦・横幅を1ページに収める（縦は自動）・フッターにページ番号
 // SheetJS（無償版）は用紙設定を書き出せないため、できたxlsx（zip）のシートXMLに直接書き足す
 function setA4Print(XLSX, data) {
   try {
     const zip = XLSX.CFB.read(new Uint8Array(data), { type: 'buffer' });
-    const ent = XLSX.CFB.find(zip, '/xl/worksheets/sheet1.xml');
-    if (!ent) return data;
-    let xml = new TextDecoder().decode(ent.content);
-    if (/<sheetPr[\s>\/]/.test(xml)) xml = xml.replace(/<sheetPr(\s[^>]*)?\/>/, '<sheetPr$1><pageSetUpPr fitToPage="1"/></sheetPr>');
-    else xml = xml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
-    xml = xml.replace(/(<pageMargins[^>]*\/>)/, '$1<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;C&amp;P / &amp;N</oddFooter></headerFooter>');
-    ent.content = new TextEncoder().encode(xml); ent.size = ent.content.length;
-    addGridAndHeader(XLSX, zip, ent);
+    const ents = [];
+    for (let n = 1; ; n++) { const e = XLSX.CFB.find(zip, `/xl/worksheets/sheet${n}.xml`); if (!e) break; ents.push(e); }
+    if (!ents.length) return data;
+    ents.forEach(ent => {
+      let xml = new TextDecoder().decode(ent.content);
+      if (/<sheetPr[\s>\/]/.test(xml)) xml = xml.replace(/<sheetPr(\s[^>]*)?\/>/, '<sheetPr$1><pageSetUpPr fitToPage="1"/></sheetPr>');
+      else xml = xml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+      xml = xml.replace(/(<pageMargins[^>]*\/>)/, '$1<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;C&amp;P / &amp;N</oddFooter></headerFooter>');
+      ent.content = new TextEncoder().encode(xml); ent.size = ent.content.length;
+    });
+    addGridAndHeader(XLSX, zip, ents);
     return XLSX.CFB.write(zip, { fileType: 'zip', type: 'array' });
   } catch (e) { return data; } // 失敗しても印刷設定なしで保存できるようにする
 }
@@ -1050,6 +1134,29 @@ const MAX_FILES = 4;
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
 // allSheets: true ならファイル内のすべてのシートを読んで1つの表にまとめる
 const PROCESSORS = {
+  'HRB 土岐': { // 2026-10-10：「ファイン電子用生産機資料-(日付).xlsx」から。F列の先頭3文字が HRB・SRB の行だけ
+    allSheets: true,
+    earliestYM: true,
+    validate: (ws) => validateToki(XLSX, ws),
+    extract:  (ws) => extractToki(XLSX, ws),
+    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
+      { key: 'category', label: 'カテゴリ', value: '制御盤' }, { key: 'state', label: '部材状態', value: 'FD南陵' }, { key: 'shipTo', label: '出荷先' },
+      { key: 'jit', label: 'JIT日', date: true }], // J列が日付以外（別途案内・未定など）は「未定」
+    outName: 'HRB土岐制御盤',
+    // 2026-10-10：出力ファイルを2シートにする。
+    // HRB土岐制御盤＝AESA 以外の全行（AESA は制御盤を自社で作るため、HRB-ATC盤へ移動）
+    // HRB-ATC盤＝機種名に「ATC」がある行（AESA も含む。AESA 以外の ATC は制御盤のシートにも残す＝コピー）。
+    //   ATC盤のシートだけ、カテゴリ＝ATC盤、部材状態＝マイクロP、出荷先＝土岐（AAI も含めて全て土岐）
+    sheets: [{ name: 'HRB土岐制御盤', filter: x => !x.aesa },
+      { name: 'HRB-ATC盤', filter: x => /ATC/.test(x.model.normalize('NFKC').toUpperCase()),
+        columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
+          { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
+          { key: 'category', label: 'カテゴリ', value: 'ATC盤' }, { key: 'state', label: '部材状態', value: 'マイクロP' }, { key: 'shipTo', label: '出荷先', value: '土岐' },
+          { key: 'jit', label: 'JIT日', date: true }] }],
+    noMarkNote: n => '',
+    emptyMsg: '抽出できる行がありませんでした。2行目以降のF列に HRB・SRB の機種名があるか確認してください。',
+  },
   'HRB KD': { // 2026-10-10 「HRB 土岐」から振り替え（土岐は名前の間違い。土岐の処理は未設定）
     allSheets: true, // 月ごとにシートが分かれることが多いため、全シートを同じ処理で読んで1つの帳票にまとめる
     sortKey: 'jit',  // まとめた後、最後にJIT日の早い順に並べ替える（空欄は最後、同日は元の順）
@@ -1167,7 +1274,7 @@ function showErr(title, items){
   e.hidden = false;
   setTimeout(() => { const ok = box.querySelector('.err-ok'); if (ok) ok.focus(); }, 0);
 }
-function fmt(d){ return d ? `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` : ''; }
+function fmt(d){ return d instanceof Date ? `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}` : (d ? String(d) : ''); } // 日付以外（「未定」など）はそのまま
 function esc(s){ const t=document.createElement('span'); t.textContent=s; return t.innerHTML; }
 const baseOf = n => n.replace(/\.[^.]+$/, '').replace(/^_+|_+$/g,'');
 
@@ -1385,13 +1492,14 @@ function run(){
   }
   lastRows = all;
   if (noMarkCount) notes.push(['info', proc.noMarkNote(noMarkCount)]);
+  if (proc.sheets) notes.push(['info', '出力するシート：' + sheetPlan(all, proc).map(sh => `「${sh.name}」${sh.rows.length}件`).join('、')]);
   $('count').innerHTML = `<b>${all.length}</b>件を抽出<span>除外 ${excluded.length}件</span>`;
   $('notes').innerHTML = notes.map(([k,t]) => `<div class="note ${k}">${esc(t)}</div>`).join('');
   const cols = proc.columns;
   $('thead').innerHTML = `<tr>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}<th>元のファイル・行</th></tr>`;
   $('tbody').innerHTML = all.map(x =>
     `<tr class="${cols.some(c => c.need && !colVal(c, x)) ? 'nomark' : ''}">${cols.map(c => c.date
-      ? `<td class="date">${fmt(colVal(c, x)) || '—'}</td>` : `<td${c.wrap ? ' class="wrap"' : ''}>${esc(colVal(c, x) ?? '')}</td>`).join('')}<td class="src">${esc(x.file)}・${x.row}行目</td></tr>`).join('')
+      ? `<td class="date">${esc(fmt(colVal(c, x))) || '—'}</td>` : `<td${c.wrap ? ' class="wrap"' : ''}>${esc(colVal(c, x) ?? '')}</td>`).join('')}<td class="src">${esc(x.file)}・${x.row}行目</td></tr>`).join('')
     || `<tr><td colspan="${cols.length + 1}">${esc(proc.emptyMsg)}</td></tr>`;
   $('exWrap').hidden = !excluded.length;
   $('exSum').textContent = `除外した行（${excluded.length}件）`;
