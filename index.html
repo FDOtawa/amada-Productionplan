@@ -910,6 +910,35 @@ function isAAI(customer, kubun, model){
   const u = v => String(v).normalize('NFKC').toUpperCase().trim();
   return u(customer) === 'AAI' || u(kubun) === 'AAI' || /(?<![A-Z])AAI(?![A-Z])/.test(u(model));
 }
+// 日本の祝日（振替休日・国民の休日を含む）。オフラインでも使えるよう計算で求める（2020年以降の決まり）
+const HOLI_CACHE = {};
+function jpHolidays(y){
+  if (HOLI_CACHE[y]) return HOLI_CACHE[y];
+  const set = new Set(), key = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  const add = (m, d) => set.add(`${y}-${m}-${d}`);
+  const nthMon = (m, n) => { const first = new Date(y, m - 1, 1).getDay(); return 1 + ((8 - first) % 7) + (n - 1) * 7; };
+  const eq = c => Math.floor(c + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4));
+  add(1, 1); add(1, nthMon(1, 2)); add(2, 11); add(2, 23); add(3, eq(20.8431)); add(4, 29); add(5, 3); add(5, 4); add(5, 5);
+  add(7, nthMon(7, 3)); add(8, 11); add(9, nthMon(9, 3)); add(9, eq(23.2488)); add(10, nthMon(10, 2)); add(11, 3); add(11, 23);
+  const base = [...set];
+  // 国民の休日：祝日にはさまれた平日
+  for (let d = new Date(y, 0, 2); d.getFullYear() === y; d.setDate(d.getDate() + 1)) {
+    const prev = new Date(d), next = new Date(d); prev.setDate(d.getDate() - 1); next.setDate(d.getDate() + 1);
+    if (!set.has(key(d)) && d.getDay() !== 0 && base.includes(key(prev)) && base.includes(key(next))) set.add(key(d));
+  }
+  // 振替休日：日曜の祝日の後の、最初の祝日でない日
+  base.forEach(k => { const [yy, m, dd] = k.split('-').map(Number), d = new Date(yy, m - 1, dd);
+    if (d.getDay() !== 0) return; const n = new Date(d); do n.setDate(n.getDate() + 1); while (set.has(key(n))); set.add(key(n)); });
+  return HOLI_CACHE[y] = set;
+}
+const isHoliday = d => jpHolidays(d.getFullYear()).has(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+// HRB-ATC盤の JIT日（2026-10-10 ユーザー指示）：元の JIT日の3週間前。日曜・月曜・祝日に当たるときは、当たらない日まで前の日へ（土曜は可）
+function atcJit(jit){
+  if (!(jit instanceof Date)) return jit; // 「未定」はそのまま
+  const d = new Date(jit.getFullYear(), jit.getMonth(), jit.getDate() - 21);
+  while (d.getDay() === 0 || d.getDay() === 1 || isHoliday(d)) d.setDate(d.getDate() - 1);
+  return d;
+}
 function validateToki(XLSX, ws){
   if (!ws || !ws['!ref']) return ['シートにデータがありません。'];
   const errs = [], range = XLSX.utils.decode_range(ws['!ref']);
@@ -947,7 +976,7 @@ function extractToki(XLSX, ws){
       : (countryOf(customer) || tokiCountryOfG(text(r, TOKI.G))); // 客先名で分からなければG列の仕向地で補う
     const jc = cellAt(r, TOKI.J), jd = jc && (jc.v instanceof Date || typeof jc.v === 'number') ? toDate(jc.v) : null;
     rows.push({ row: r + 1, month, model: dest === 'EXP' ? addExp(model) : model, dest, country, serial, customer,
-      shipTo: aaiModel || isAAI(customer, text(r, 0), model) ? 'KD' : '土岐', jit: jd || '未定',
+      shipTo: aaiModel || isAAI(customer, text(r, 0), model) ? 'KD' : '土岐', jit: jd || '未定', jitAtc: atcJit(jd || '未定'), // jitAtc＝HRB-ATC盤のJIT日（3週間前）
       aesa: /AESA/.test(model.normalize('NFKC').toUpperCase()) || norm(text(r, 0)).toUpperCase() === 'AESA' }); // AESA の行（制御盤のシートには出さない）
   }
   return { rows, excluded, noMark: [], prodYear, prodMonth };
@@ -1189,7 +1218,7 @@ const PROCESSORS = {
         columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
           { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
           { key: 'category', label: 'カテゴリ', value: 'ATC盤' }, { key: 'state', label: '部材状態', value: 'マイクロP' }, { key: 'shipTo', label: '出荷先', value: '土岐' },
-          { key: 'jit', label: 'JIT日', date: true }] }],
+          { key: 'jitAtc', label: 'JIT日', date: true }] }], // ATC盤の JIT日は元の JIT日の3週間前（日・月・祝日は前の日へ）
     noMarkNote: n => '',
     emptyMsg: '抽出できる行がありませんでした。2行目以降のF列に HRB・SRB の機種名があるか確認してください。',
   },
