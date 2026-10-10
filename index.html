@@ -772,7 +772,7 @@ const PROCESSORS = {
     book: true, // 対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 の2シート単位で処理する。A列の先頭「HG」を取り除く以外は HRB 大型と同じ
     validate: (wb) => validateLarge(XLSX, wb, MIDDLE_HG),
     extract:  (wb) => extractLarge(XLSX, wb, MIDDLE_HG),
-    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
+    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, // 仕向の列は出さない（2026-10-10 ユーザー指定。国名の判定には内部で使う）
       { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }, { key: 'note', label: '備考' }],
     outName: 'JIT日一覧',
     earliestYM: true,
