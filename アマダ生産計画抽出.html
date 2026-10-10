@@ -583,20 +583,30 @@ function prodMonthLabel(text, runDate) {
   if (d.getMonth() + 1 >= 5 && mon <= 4) y++;
   return `${y}年${mon}月`;
 }
-// 国名：顧客名の【 】の中、なければ顧客名全体から国を表す語を探して日本語で返す（分からなければ空欄）
+// 国名（仕向がEXPの行だけ使う）：米国・中国・台湾・韓国は漢字、それ以外はカタカナ、アラブ首長国連邦は「UAE」、香港は中国。
+// 英字の国名は前後が英字でない独立した語のときだけ判定する（例：MUSASHI の中の USA には反応しない）
+const wordRe = s => new RegExp(`(?<![A-Z])(?:${s})(?![A-Z])`);
 const COUNTRY = [
-  [/TAIWAN|台湾/, '台湾'], [/HONG\s*KONG|香港/, '香港'], [/CHINA|中国/, '中国'], [/KOREA|韓国/, '韓国'], [/THAILAND|THAI|タイ/, 'タイ'],
-  [/VIET\s*NAM|ベトナム/, 'ベトナム'], [/INDONESIA|インドネシア/, 'インドネシア'], [/MALAYSIA|マレーシア/, 'マレーシア'],
-  [/PHILIPPINES|フィリピン/, 'フィリピン'], [/SINGAPORE|シンガポール/, 'シンガポール'], [/INDIA|インド/, 'インド'],
-  [/U\.?S\.?A|AMERICA|アメリカ|米国/, '米国'], [/CANADA|カナダ/, 'カナダ'], [/MEXICO|メキシコ/, 'メキシコ'], [/BRAZIL|ブラジル/, 'ブラジル'],
-  [/GERMANY|ドイツ/, 'ドイツ'], [/FRANCE|フランス/, 'フランス'], [/ITALY|イタリア/, 'イタリア'], [/\bU\.?K\b|ENGLAND|BRITAIN|イギリス|英国/, 'イギリス'],
-  [/AUSTRALIA|オーストラリア/, 'オーストラリア'], [/TURKEY|トルコ/, 'トルコ'],
+  [/アラブ首長国連邦/, 'UAE'], [wordRe('U\\.?A\\.?E\\.?|UNITED\\s*ARAB\\s*EMIRATES'), 'UAE'],
+  [/台湾/, '台湾'], [wordRe('TAIWAN'), '台湾'], [/香港/, '中国'], [wordRe('HONG\\s*KONG|HONGKONG'), '中国'],
+  [/中国/, '中国'], [wordRe('CHINA'), '中国'], [/韓国/, '韓国'], [wordRe('KOREA'), '韓国'],
+  [/米国|アメリカ/, '米国'], [wordRe('U\\.?S\\.?A\\.?|U\\.S\\.|AMERICA|UNITED\\s*STATES'), '米国'],
+  [/タイ(?!ヤ|プ|ム|ル|ガー)/, 'タイ'], [wordRe('THAILAND|THAI'), 'タイ'],
+  [/ベトナム/, 'ベトナム'], [wordRe('VIET\\s*NAM'), 'ベトナム'], [/インドネシア/, 'インドネシア'], [wordRe('INDONESIA'), 'インドネシア'],
+  [/マレーシア/, 'マレーシア'], [wordRe('MALAYSIA'), 'マレーシア'], [/フィリピン/, 'フィリピン'], [wordRe('PHILIPPINES'), 'フィリピン'],
+  [/シンガポール/, 'シンガポール'], [wordRe('SINGAPORE'), 'シンガポール'], [/インド(?!ネシア)/, 'インド'], [wordRe('INDIA'), 'インド'],
+  [/カナダ/, 'カナダ'], [wordRe('CANADA'), 'カナダ'], [/メキシコ/, 'メキシコ'], [wordRe('MEXICO'), 'メキシコ'], [/ブラジル/, 'ブラジル'], [wordRe('BRAZIL'), 'ブラジル'],
+  [/ドイツ/, 'ドイツ'], [wordRe('GERMANY'), 'ドイツ'], [/フランス/, 'フランス'], [wordRe('FRANCE'), 'フランス'], [/イタリア/, 'イタリア'], [wordRe('ITALY'), 'イタリア'],
+  [/イギリス|英国/, 'イギリス'], [wordRe('U\\.?K\\.?|ENGLAND|BRITAIN|UNITED\\s*KINGDOM'), 'イギリス'],
+  [/オーストラリア/, 'オーストラリア'], [wordRe('AUSTRALIA'), 'オーストラリア'], [/トルコ/, 'トルコ'], [wordRe('TURKEY'), 'トルコ'],
 ];
 function countryOf(customer) {
   const t = String(customer).normalize('NFKC').toUpperCase();
+  const find = src => { for (const [re, name] of COUNTRY) if (re.test(src)) return name; return ''; };
   const tag = (t.match(/【([^】]+)】/) || t.match(/\[([^\]]+)\]/) || [])[1];
-  for (const src of tag ? [tag, t] : [t]) for (const [re, name] of COUNTRY) if (re.test(src)) return name;
-  return '';
+  if (tag) { const c = find(tag); if (c) return c; }   // まず【 】の中
+  if (/AMADA\s*EUROPE/.test(t)) return '欧州';          // AMADA EUROPE で【 】に国名が無ければ欧州
+  return find(t);                                        // 顧客名全体から探す（ASIA PACIFIC など判断できなければ空欄）
 }
 function toDate(v) {
   if (v instanceof Date) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
