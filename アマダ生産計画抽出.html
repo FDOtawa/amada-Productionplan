@@ -743,7 +743,7 @@ const MAX_FILES = 4;
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
 // allSheets: true ならファイル内のすべてのシートを読んで1つの表にまとめる
 const PROCESSORS = {
-  'HRB　土岐': {
+  'HRB 土岐': {
     allSheets: true, // 月ごとにシートが分かれることが多いため、全シートを同じ処理で読んで1つの帳票にまとめる
     sortKey: 'jit',  // まとめた後、最後にJIT日の早い順に並べ替える（空欄は最後、同日は元の順）
     validate: (ws) => validateHRBToki(XLSX, ws),
@@ -766,7 +766,7 @@ const PROCESSORS = {
     noMarkNote: n => `「本4」または「本3」が見つからない行が${n}件あります。見つからない納期は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。6行目以降のF列にデータがあるか確認してください。',
   },
-  'HRB　大型': {
+  'HRB 大型': {
     book: true, // シート単位ではなく、ファイル（(新)(旧)ﾍﾞﾝﾀﾞｰ大型の2シート）単位で処理する
     validate: (wb) => validateLarge(XLSX, wb),
     extract:  (wb) => extractLarge(XLSX, wb),
@@ -1113,7 +1113,7 @@ $('done').addEventListener('click', () => {
 renderSlots();
 // 機種選択（ラジオボタン）。空欄は今後追加する機種用の空き枠
 const MACHINES = [
-  ['EGB　集計','EGB　制御盤','EGB　別盤','HRB　集計','HRB　土岐','HRB　KD','HRB　大型','HRB　ATC盤'],
+  ['EGB 集計','EGB 制御盤','EGB 別盤','HRB 集計','HRB 土岐','HRB KD','HRB 大型','HRB ATC盤'], // 機種名の空白は半角（2026-10-10 ユーザー指定）
   ['HG','複合機','レーザ','AE','発振器','小板発振器','FLW','']
 ];
 (function renderMachines(){
