@@ -1013,11 +1013,11 @@ function run(){
 
 // 保存ダイアログ（ファイル名を任意で付けて保存）
 let lastYM = '', lastInfo = null;
-// 保存ファイル名の初期値：「選択機種AMD生産計画 作成日（処理した日、2026.10.01形式）」（全機種共通）
+// 保存ファイル名の初期値：「選択機種 AMD生産計画 作成日（処理した日、2026.10.01形式）」（全機種共通。機種名とAMDの間は半角スペース）
 function defaultName(){
   const m = machine ? machine.replace(/\s|　/g, '') : 'アマダ';
   const d = new Date(), p2 = n => String(n).padStart(2, '0');
-  return `${m}AMD生産計画 ${d.getFullYear()}.${p2(d.getMonth() + 1)}.${p2(d.getDate())}`;
+  return `${m} AMD生産計画 ${d.getFullYear()}.${p2(d.getMonth() + 1)}.${p2(d.getDate())}`;
 }
 function openSave(){
   if (!lastRows.length) return;
