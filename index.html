@@ -982,6 +982,77 @@ function extractToki(XLSX, ws){
   return { rows, excluded, noMark: [], prodYear, prodMonth };
 }
 
+// 「HRB ATC盤」（HRBツールステーション発送計画）：予定表のシートは3行目が見出し（C=機種名、D=シリアル、E=現法、F=生産月、G=制御盤希望日、L=備考）、4行目以降がデータ。
+// 日付が「8/14⇒9/2⇒8/27⇒8/21」のように変更されているときは一番右（最新）を使う。
+const TS = { HEAD_ROW: 2, FIRST: 3, C: 2, D: 3, E: 4, F: 5, G: 6, L: 11 };
+function tsSheet(XLSX, wb){
+  return wb.SheetNames.find(n => { const ws = wb.Sheets[n]; if (!ws) return false;
+    const h = c => { const cell = ws[XLSX.utils.encode_cell({ r: TS.HEAD_ROW, c })]; return cell ? norm(cell.v).replace(/\s/g, '') : ''; };
+    return h(TS.D).includes('シリアル') && h(TS.E).includes('現法') && h(TS.F).includes('生産月'); });
+}
+// 「⇒」で区切られていれば一番右を使う
+const lastPart = v => String(v).split(/⇒|→|->/).map(x => x.trim()).filter(Boolean).pop() || '';
+// 生産月：日付ならその年月。「27/3」「2027/3」などの文字は 年/月 として読む
+function tsMonth(cell){
+  if (!cell) return { label: '', y: null, m: null };
+  if (cell.v instanceof Date) return { label: `${cell.v.getFullYear()}年${cell.v.getMonth() + 1}月`, y: cell.v.getFullYear(), m: cell.v.getMonth() + 1 };
+  const t = lastPart(cell.w !== undefined ? cell.w : cell.v).normalize('NFKC');
+  const m = t.match(/^(\d{2}|\d{4})\D(\d{1,2})(?:\D\d{1,2})?$/);
+  if (!m) return { label: t, y: null, m: null };
+  const y = m[1].length === 2 ? 2000 + +m[1] : +m[1];
+  return { label: `${y}年${+m[2]}月`, y, m: +m[2] };
+}
+// JIT日（G列）：日付ならその日付。「11/6⇒11/4」のような文字は一番右を使い、年が無いときは生産月から決める
+// （生産月より3か月以上あとの月になるときは前の年）。読めなければ「未定」
+function tsJit(cell, pm){
+  if (!cell) return '未定';
+  if (cell.v instanceof Date || typeof cell.v === 'number') return toDate(cell.v) || '未定';
+  const t = lastPart(cell.w !== undefined ? cell.w : cell.v).normalize('NFKC');
+  let m = t.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = t.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return '未定';
+  let y = pm.y || new Date().getFullYear();
+  if (pm.y && (+m[1]) > pm.m + 2) y--; // 例：生産月 2027年1月で「12/4」→ 2026年12月4日
+  return new Date(y, +m[1] - 1, +m[2]);
+}
+function validateTS(XLSX, wb){
+  const name = tsSheet(XLSX, wb);
+  if (!name) return ['項目の定義：3行目にD列「シリアル」・E列「現法」・F列「生産月」の見出しがあるシート（予定表）がありません。'];
+  const ws = wb.Sheets[name], range = XLSX.utils.decode_range(ws['!ref']), errs = [];
+  const h = c => { const cell = ws[XLSX.utils.encode_cell({ r: TS.HEAD_ROW, c })]; return cell ? norm(cell.v).replace(/\s/g, '') : ''; };
+  const miss = [[TS.C, 'C', '機種名', ''], [TS.G, 'G', '制御盤希望日', '希望日']].filter(([c, , , w]) => w && !h(c).includes(w));
+  if (miss.length) errs.push(`項目の定義：シート「${name}」の3行目に見出し（${miss.map(([, l, d]) => `${l}列「${d}」`).join('、')}）がありません。`);
+  let n = 0;
+  for (let r = TS.FIRST; r <= range.e.r; r++) { const c = ws[XLSX.utils.encode_cell({ r, c: TS.C })]; if (c && /^(HRB|SRB)/.test(norm(c.v).toUpperCase())) n++; }
+  if (!n) errs.push(`列の定義：シート「${name}」の4行目以降のC列に HRB の機種名がありません。`);
+  return errs;
+}
+function extractTS(XLSX, wb){
+  const name = tsSheet(XLSX, wb), ws = wb.Sheets[name];
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const cellAt = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
+  const text = (r, c) => { const cell = cellAt(r, c); return cell ? String(cell.w !== undefined && typeof cell.v !== 'number' ? cell.w : cell.v).trim() : ''; };
+  const rows = [], excluded = [];
+  for (let r = TS.FIRST; r <= range.e.r; r++) {
+    const model = text(r, TS.C);
+    if (!model) continue;
+    const serial = String(cellAt(r, TS.D) ? cellAt(r, TS.D).v : '').trim();
+    if (!TOKI.KEEP.includes(model.normalize('NFKC').toUpperCase().slice(0, 3))) { excluded.push({ row: r + 1, model, serial, reason: '機種名が HRB・SRB ではない' }); continue; }
+    const gen = norm(text(r, TS.E)).toUpperCase(), M = model.normalize('NFKC').toUpperCase();
+    const aaiModel = /(?<![A-Z])AAI(?![A-Z])/.test(M) || gen === 'AAI';
+    const aesa = /AESA/.test(M) || gen === 'AESA';
+    const dest = aaiModel ? 'EXP' : gen === 'DOMS' ? 'DMS' : 'EXP'; // 仕向：現法が DOMS なら DMS、それ以外は EXP
+    const customer = aaiModel ? 'AAI' : aesa ? 'AESA' : ''; // 客先名は AAI・AESA だけ
+    const country = aaiModel ? '米国' : dest === 'DMS' ? '日本' : /^HRBC/.test(M) ? '中国'
+      : aesa ? '欧州' : (countryOf(customer) || countryOf(text(r, TS.L))); // AESA は欧州。そのほかは備考（L列：タイ、インドなど）から
+    const pm = tsMonth(cellAt(r, TS.F));
+    rows.push({ row: r + 1, sheet: name, month: pm.label, model: dest === 'EXP' ? addExp(model) : model, serial, dest, country, customer,
+      jitOrig: tsJit(cellAt(r, TS.G), pm), jit: atcJit(tsJit(cellAt(r, TS.G), pm)) }); // JIT日は G列（⇒は右側）の3週間前（日・月・祝日は前の日へ。HRB 土岐の ATC盤と同じ）
+  }
+  return { rows, excluded, noMark: [], prodYear: null, prodMonth: null };
+}
+
 // Excelの列幅の単位（半角1文字=1）で文字の幅を見積もる。印刷時（改ページプレビューの自動調整）でも切れないよう、半角・半角カナ=1.25、全角=2.4 で見積もる
 function textWidth(v) {
   let w = 0;
@@ -1221,6 +1292,20 @@ const PROCESSORS = {
           { key: 'jitAtc', label: 'JIT日', date: true }] }], // ATC盤の JIT日は元の JIT日の3週間前（日・月・祝日は前の日へ）
     noMarkNote: n => '',
     emptyMsg: '抽出できる行がありませんでした。2行目以降のF列に HRB・SRB の機種名があるか確認してください。',
+  },
+  'HRB ATC盤': { // 2026-10-10：「HRBツールステーション発送計画(日付).xlsx」から ATC盤（ツールステーション）の予定を抜き出す
+    book: true, // 予定表のシート（3行目に「シリアル」「現法」「生産月」の見出しがあるシート）を探して読む
+    sortKey: 'jit', // JIT日の早い順。日付でない（未定）行は最後に元の表の順で
+    earliestYM: true,
+    validate: (wb) => validateTS(XLSX, wb),
+    extract:  (wb) => extractTS(XLSX, wb),
+    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
+      { key: 'category', label: 'カテゴリ', value: 'ATC盤' }, { key: 'state', label: '部材状態', value: 'マイクロP' }, { key: 'shipTo', label: '出荷先', value: '土岐' },
+      { key: 'jit', label: 'JIT日', date: true }],
+    outName: 'ツールステーション',
+    noMarkNote: n => '',
+    emptyMsg: '抽出できる行がありませんでした。予定表のシートの4行目以降のC列に HRB の機種名があるか確認してください。',
   },
   'HRB KD': { // 2026-10-10 「HRB 土岐」から振り替え（土岐は名前の間違い。土岐の処理は未設定）
     allSheets: true, // 月ごとにシートが分かれることが多いため、全シートを同じ処理で読んで1つの帳票にまとめる
