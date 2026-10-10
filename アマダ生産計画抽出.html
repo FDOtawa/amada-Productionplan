@@ -1194,6 +1194,25 @@ function fmt(d){ return d ? `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}
 function esc(s){ const t=document.createElement('span'); t.textContent=s; return t.innerHTML; }
 const baseOf = n => n.replace(/\.[^.]+$/, '').replace(/^_+|_+$/g,'');
 
+// 全機種共通（現在・今後とも）：ファイルを読み込んだら最初に、全シートの全セルの前後の余白
+// （半角・全角スペース、見えない空白、タブ、改行）を削除する。途中の空白は残す。余白だけのセルは空欄にする
+const EDGE_SPACE = /^[\s\u200B\u200C\u200D\u2060]+|[\s\u200B\u200C\u200D\u2060]+$/g; // \s は全角スペース・NBSP・BOM も含む
+function trimWorkbook(wb){
+  wb.SheetNames.forEach(n => {
+    const ws = wb.Sheets[n]; if (!ws) return;
+    Object.keys(ws).forEach(k => {
+      if (k[0] === '!') return;
+      const c = ws[k];
+      if (typeof c.w === 'string') c.w = c.w.replace(EDGE_SPACE, '');
+      if (typeof c.v !== 'string') return;
+      const t = c.v.replace(EDGE_SPACE, '');
+      if (t === c.v) return;
+      if (t === '') { delete ws[k]; return; }
+      c.v = t; c.w = t; delete c.r; delete c.h;
+    });
+  });
+  return wb;
+}
 async function addFiles(list){
   showErr('');
   if (typeof XLSX === 'undefined') { showErr('ファイルを読み込めません', [{ cause: 'Excel読み込み用のプログラムを読み込めませんでした', fix: 'ページを再読み込みしてください' }]); return; }
@@ -1203,6 +1222,7 @@ async function addFiles(list){
   for (const f of picked) {
     try {
       const wb = XLSX.read(await f.arrayBuffer(), { cellDates:true });
+      trimWorkbook(wb); // 全機種共通の最初の作業：全シート・全セルの前後の余白を削除
       files.push({ name: f.name, wb, sheet: wb.SheetNames[0] });
     } catch(e) { errs.push(f.name); }
   }
