@@ -571,13 +571,13 @@ const colVal = (c, x) => c.value !== undefined ? c.value : x[c.key];
 const LARGE = { NEW: '(新)ベンダー大型', OLD: '(旧)ベンダー大型', PREFIX: 'TY', FIRST_DATA_ROW: 2, A: 0, B: 1, D: 3, E: 4, J: 9 };
 // HG：同じ対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 を読み、A列の先頭から「HG」を取り除く（ほかは HRB 大型と同じ）
 const MIDDLE_HG = { ...LARGE, NEW: '(新)ベンダー中型', OLD: '(旧)ベンダー中型', PREFIX: 'HG', NOTE: hgNote };
-// HGの備考：機種名に「ATC」があれば ATC、「ARM」があれば ARM（上位ルール）。それ以外はシリアル（HG削除後）の下から4桁目が 2→Y化 Σ10、8→B&R、ほかは空欄
+// HGの備考：機種名に「ATC」があれば ATC、「ARM」があれば ARM（上位ルール）。それ以外はシリアル（HG削除後）の下から4桁目が 2→Y化 Σ10、7→Y化 Σ7、8→B&R、ほかは空欄
 function hgNote(model, serial) {
   const m = String(model).normalize('NFKC').toUpperCase();
   if (m.includes('ATC')) return 'ATC';
   if (m.includes('ARM')) return 'ARM';
   const d = String(serial).length >= 4 ? String(serial).slice(-4, -3) : '';
-  return d === '2' ? 'Y化 Σ10' : d === '8' ? 'B&R' : '';
+  return d === '2' ? 'Y化 Σ10' : d === '7' ? 'Y化 Σ7' : d === '8' ? 'B&R' : '';
 }
 const trimAll = v => (v === undefined || v === null) ? '' : String(v).replace(/^\s+|\s+$/g, ''); // \s は半角・全角スペース、見えない空白、タブ、改行を含む
 const findSheet = (wb, want) => wb.SheetNames.find(n => n.normalize('NFKC').replace(/\s/g, '') === want);
