@@ -489,6 +489,7 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 <tr><td>AMD生産月</td><td>A列（例：2026年12月）。年は処理した日で決めます（5月以降に処理すると、1〜4月は翌年）。</td></tr>
 <tr><td>機種名</td><td>D列</td></tr><tr><td>シリアル</td><td>F列</td></tr>
 <tr><td>仕向</td><td>すべて「EXP」</td></tr><tr><td>客先</td><td>すべて「AAI」</td></tr>
+<tr><td>カテゴリ</td><td>すべて「制御盤」</td></tr><tr><td>部材状態</td><td>すべて「FD南陵」</td></tr><tr><td>出荷先</td><td>すべて「KD」</td></tr>
 <tr><td>JIT日</td><td>▲の真上の日付</td></tr></tbody></table>
 <ul><li><b>除外する行：</b>機種名が「HRB」で始まらない行、機種名に「AESA」がある行（AESAは制御盤を自社で作るため）。</li>
 <li>最後に<b>JIT日の早い順</b>に並べます（JIT日が無い行は最後）。</li>
@@ -525,7 +526,7 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 <tr><td>AMD生産月</td><td>B列（例：2026年9月）。年は処理した日で決めます。</td></tr>
 <tr><td>機種名</td><td>D列</td></tr><tr><td>シリアル</td><td>A列（先頭の TY を取ったもの）</td></tr><tr><td>仕向</td><td>機種名に「EXP」がある、または「HRBC」で始まる → EXP。それ以外 → DMS</td></tr>
 <tr><td>国名</td><td>DMS → 日本。HRBC → 中国。EXP → 客先名の【 】などから判断（下の表）</td></tr>
-<tr><td>客先名</td><td>E列</td></tr><tr><td>JIT日</td><td>J列（着手日）</td></tr></tbody></table>
+<tr><td>客先名</td><td>E列</td></tr><tr><td>カテゴリ</td><td>すべて「制御盤」</td></tr><tr><td>部材状態</td><td>すべて「FD南陵」</td></tr><tr><td>出荷先</td><td>すべて「富士宮」</td></tr><tr><td>JIT日</td><td>J列（着手日）</td></tr></tbody></table>
 
 <p><b>国名の決め方（仕向が EXP のときだけ）</b></p>
 <table class="mt"><thead><tr><th>客先名の例</th><th>国名</th></tr></thead><tbody>
