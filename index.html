@@ -1171,6 +1171,7 @@ const MAX_FILES = 4;
 const PROCESSORS = {
   'HRB 土岐': { // 2026-10-10：「ファイン電子用生産機資料-(日付).xlsx」から。F列の先頭3文字が HRB・SRB の行だけ
     allSheets: true,
+    sortKey: 'jit', // 2つのシートとも JIT日の早い順。日付でない（未定）行は最後に元の表の順で
     earliestYM: true,
     validate: (ws) => validateToki(XLSX, ws),
     extract:  (ws) => extractToki(XLSX, ws),
@@ -1522,7 +1523,7 @@ function run(){
     noMarkCount = all.filter(x => proc.columns.some(c => c.need && !colVal(c, x))).length;
   }
   if (proc.sortKey) {
-    const t = x => x[proc.sortKey] ? x[proc.sortKey].getTime() : Infinity;
+    const t = x => x[proc.sortKey] instanceof Date ? x[proc.sortKey].getTime() : Infinity; // 空欄や「未定」などは最後（元の順のまま）
     all.sort((a, b) => t(a) - t(b)); // 同じ日付は元の順のまま
   }
   lastRows = all;
