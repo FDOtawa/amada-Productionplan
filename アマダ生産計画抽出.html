@@ -896,6 +896,21 @@ async function addFiles(list){
   if (dup) { markSlots(); showErr('ファイルが重複しています', [dup, ...items]); return; }
   showErr(items.length ? 'ファイルの取り込みで問題がありました' : '', items);
 }
+// ファイル名の日付（新旧の判断に使う）：2026.09.07／2026-09-07／2026年9月7日／20261003（年月日）、2027.01／202701（年月）を読み取る。
+// 読み取れなければ null。比べやすいよう 年*10000＋月*100＋日（日が無ければ0）の数にする
+function fileDateKey(name) {
+  const t = baseOf(name).normalize('NFKC');
+  const ok = (y, m, d) => m >= 1 && m <= 12 && d >= 0 && d <= 31;
+  let m = t.match(/(?<!\d)(20\d{2})\s*[.\-_\/年]\s*(\d{1,2})\s*[.\-_\/月]\s*(\d{1,2})\s*日?(?!\d)/);
+  if (m && ok(+m[1], +m[2], +m[3])) return { key: +m[1] * 10000 + +m[2] * 100 + +m[3], label: `${m[1]}年${+m[2]}月${+m[3]}日` };
+  m = t.match(/(?<!\d)(20\d{2})(\d{2})(\d{2})(?!\d)/);
+  if (m && ok(+m[1], +m[2], +m[3]) && +m[3] >= 1) return { key: +m[1] * 10000 + +m[2] * 100 + +m[3], label: `${m[1]}年${+m[2]}月${+m[3]}日` };
+  m = t.match(/(?<!\d)(20\d{2})\s*[.\-_\/年]\s*(\d{1,2})\s*月?(?![\d.\-_\/])/);
+  if (m && ok(+m[1], +m[2], 0)) return { key: +m[1] * 10000 + +m[2] * 100, label: `${m[1]}年${+m[2]}月` };
+  m = t.match(/(?<!\d)(20\d{2})(\d{2})(?!\d)/);
+  if (m && ok(+m[1], +m[2], 0)) return { key: +m[1] * 10000 + +m[2] * 100, label: `${m[1]}年${+m[2]}月` };
+  return null;
+}
 // 同じタイトル（ファイル名。拡張子・大文字小文字・全角半角の違いは無視）のファイルが2つ以上あれば重複。
 // 重複したファイルには dup を付けて赤枠にし、エラー表示用の項目を返す（重複が無ければ null）
 const titleKey = n => baseOf(n).normalize('NFKC').trim().toLowerCase();
@@ -965,6 +980,17 @@ function run(){
     showErr('ファイルが重複しています', [dupFile]);
     return;
   }
+  // ファイルが2つ以上のときは、ファイル名の日付で新旧を判断する（同じシリアルは新しいファイルを採用）。読み取れなければエラー
+  if (files.length > 1) {
+    const noDate = files.filter(f => !fileDateKey(f.name)).map(f => f.name);
+    if (noDate.length) {
+      completed = false; $('result').hidden = true; lastRows = []; refreshDl();
+      files.forEach(f => f.invalid = !fileDateKey(f.name)); markSlots();
+      showErr('処理を開始できません', [{ cause: 'ファイル名から日付（時系列）を読み取れません', detail: noDate,
+        fix: '複数のファイルを処理するときは、新しい方を判断するため、ファイル名に日付（例：20261003、202701、2026.09.07）を入れてください' }]);
+      return;
+    }
+  }
   const proc = PROCESSORS[machine];
   if (!proc) {
     completed = false; $('result').hidden = true; lastRows = []; refreshDl();
@@ -1011,15 +1037,36 @@ function run(){
       noMarkCount += res.noMark.length;
     });
   });
+  // 同じシリアルが複数のファイルにあるときは、ファイル名の日付が新しいファイルの行を採用（全機種共通）
+  if (files.length > 1) {
+    const dateOf = files.map(f => fileDateKey(f.name));
+    const serialKey = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
+    const fileSets = {};
+    all.forEach(x => { const k = serialKey(x); if (k) (fileSets[k] = fileSets[k] || new Set()).add(x.fileNo); });
+    const winner = {}, conflicts = [];
+    Object.entries(fileSets).forEach(([k, set]) => {
+      if (set.size < 2) return;
+      const nos = [...set], best = Math.max(...nos.map(n => dateOf[n].key)), top = nos.filter(n => dateOf[n].key === best);
+      if (top.length > 1) conflicts.push(`${k}（${top.map(n => files[n].name).join(' と ')}）`);
+      winner[k] = top[0];
+    });
+    if (conflicts.length) {
+      completed = false; $('result').hidden = true; lastRows = []; refreshDl();
+      showErr('処理を開始できません', [{ cause: 'ファイル名の日付が同じファイルに同じシリアルがあり、どちらが新しいか判断できません', detail: conflicts.slice(0, 10),
+        fix: 'どちらか一方を選んでファイルクリアするか、ファイル名の日付を確認してください' }]);
+      return;
+    }
+    const replaced = Object.keys(winner).length;
+    for (let i = all.length - 1; i >= 0; i--) { const k = serialKey(all[i]); if (k in winner && all[i].fileNo !== winner[k]) all.splice(i, 1); }
+    if (replaced) notes.push(['info', `${replaced}件のシリアルが複数のファイルにあったため、ファイル名の日付が新しいファイルの内容を採用しました。`]);
+    noMarkCount = all.filter(x => proc.columns.some(c => c.need && !colVal(c, x))).length;
+  }
   if (proc.sortKey) {
     const t = x => x[proc.sortKey] ? x[proc.sortKey].getTime() : Infinity;
     all.sort((a, b) => t(a) - t(b)); // 同じ日付は元の順のまま
   }
   lastRows = all;
   if (noMarkCount) notes.push(['info', proc.noMarkNote(noMarkCount)]);
-  const seen = {}, dup = new Set();
-  all.forEach(x => { if (!x.serial) return; const k = x.model + '|' + x.serial; if (seen[k] !== undefined && seen[k] !== x.fileNo) dup.add(x.serial); if (seen[k] === undefined) seen[k] = x.fileNo; });
-  if (dup.size) notes.push(['info', `複数のファイルに同じ機種名・シリアルの行が${dup.size}件あります（${[...dup].slice(0,5).join('、')}${dup.size>5?' ほか':''}）。両方とも出力しています。`]);
   $('count').innerHTML = `<b>${all.length}</b>件を抽出<span>除外 ${excluded.length}件</span>`;
   $('notes').innerHTML = notes.map(([k,t]) => `<div class="note ${k}">${esc(t)}</div>`).join('');
   const cols = proc.columns;
