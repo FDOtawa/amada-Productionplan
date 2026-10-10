@@ -173,6 +173,10 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 .save-ext{font-weight:700;color:var(--sub);font-size:18px}
 .save-msg{min-height:24px;font-size:15px;margin-top:4px;color:var(--sub)}
 .save-msg.ng{color:var(--err-red);font-weight:700}
+.save-dir{display:flex;align-items:center;gap:12px;margin:2px 0 10px;font-size:15px}
+.save-dir-label{font-weight:700}
+#saveDirName{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:6px 10px;background:#fff;border:1px solid #C3C9CF;border-radius:6px;font-weight:400}
+.save-dir-btn{position:relative;overflow:hidden;height:36px;padding:0 16px;font-weight:700;font-size:14px;border-radius:6px;color:var(--ink);border:1px solid #6F7780;background:linear-gradient(#FFFFFF,#E9ECEF 50%,#D2D7DC 51%,#E4E8EB);box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(0,0,0,.2)}
 .save-note{font-size:14px;color:var(--sub);background:rgba(255,255,255,.7);border:1px solid #D3D8DD;border-radius:6px;padding:10px 12px;line-height:1.6}
 .save-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:16px}
 .save-cancel,.save-ok,.err-ok{position:relative;overflow:hidden;height:46px;font-weight:700;font-size:17px;border-radius:6px}
@@ -300,7 +304,9 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
       <label class="save-label" for="saveName">ファイル名（自由に変更できます）</label>
       <div class="save-row"><input id="saveName" type="text" autocomplete="off" spellcheck="false"><span class="save-ext">.xlsx</span></div>
       <div class="save-msg" id="saveMsg" aria-live="polite"></div>
-      <div class="save-note">保存先のフォルダは、「保存」を押したあとにブラウザが表示する保存画面で選びます。保存画面が出ずにダウンロードフォルダへ保存される場合は、ブラウザの設定で「ダウンロード前に各ファイルの保存場所を確認する」をオンにしてください。</div>
+      <div class="save-dir" id="saveDirRow" hidden><span class="save-dir-label">保存先フォルダ</span><b id="saveDirName">未選択（「保存」を押すと選べます）</b><button type="button" id="saveDirBtn" class="save-dir-btn">フォルダを選択</button></div>
+      <div class="save-note" id="saveNoteDir" hidden>選んだフォルダに保存します。同じ名前のファイルがあるときは、末尾に「 (1)」「 (2)」…と番号を付けて保存します（上書きしません）。アプリを起動し直したあとの最初の保存では、フォルダへの保存の許可を確認する画面が出ます。</div>
+      <div class="save-note" id="saveNoteDl">保存先のフォルダは、「保存」を押したあとにブラウザが表示する保存画面で選びます。保存画面が出ずにダウンロードフォルダへ保存される場合は、ブラウザの設定で「ダウンロード前に各ファイルの保存場所を確認する」をオンにしてください。</div>
       <div class="save-actions"><button type="button" id="saveCancel" class="save-cancel">キャンセル</button><button type="button" id="saveOk" class="save-ok">保存</button></div>
     </div>
   </div>
@@ -933,7 +939,7 @@ function renderSlots(){
     d.className = 'slot';
     d.classList.toggle('picked', !!f.picked);
     d.innerHTML = `<button type="button" class="pick" aria-pressed="${f.picked ? 'true' : 'false'}" title="クリックで選択／解除（選択したファイルはファイルクリアで取り除けます）"><span class="xls">${XLS_ICON}</span><span class="fn"><b class="name">${esc(f.name)}</b><small>ファイル${i+1}・${f.wb.SheetNames.length}シート</small></span></button><span class="mk x" title="クリア対象">${X_ICON}</span><span class="mk bad" title="エラー">！</span>`;
-    if (f.wb.SheetNames.length > 1 && !(PROCESSORS[machine] || {}).allSheets) { // 全シートを読む機種ではシート選択を出さない
+    if (f.wb.SheetNames.length > 1 && !(PROCESSORS[machine] || {}).allSheets && !(PROCESSORS[machine] || {}).book) { // 全シートを読む機種・決まったシートを読む機種（book）ではシート選択を出さない
       const sel = document.createElement('select'); sel.setAttribute('aria-label', 'シート');
       f.wb.SheetNames.forEach(n => { const o=document.createElement('option'); o.textContent=n; if(n===f.sheet) o.selected=true; sel.appendChild(o); });
       sel.addEventListener('change', () => { f.sheet = sel.value; completed = false; run(); });
@@ -1083,6 +1089,39 @@ function run(){
   refreshDl();
 }
 
+// 保存先フォルダ：フォルダを選べるブラウザ（Edge・Chrome）では、選んだフォルダに直接保存し、
+// 同じ名前のファイルがあれば「名前 (1).xlsx」「名前 (2).xlsx」…と番号を付ける。選んだフォルダは IndexedDB に記憶する
+const canPickDir = typeof window.showDirectoryPicker === 'function';
+let saveDir = null;
+function idb(mode, fn) {
+  return new Promise(resolve => {
+    try {
+      const req = indexedDB.open('amada-plan', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('kv');
+      req.onsuccess = () => { try { const tx = req.result.transaction('kv', mode); const r = fn(tx.objectStore('kv')); tx.oncomplete = () => resolve(r && r.result); tx.onerror = () => resolve(null); } catch (e) { resolve(null); } };
+      req.onerror = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+}
+const loadSaveDir = async () => { showSaveDir(); saveDir = await idb('readonly', st => st.get('saveDir')) || null; showSaveDir(); };
+const storeSaveDir = h => idb('readwrite', st => st.put(h, 'saveDir'));
+function showSaveDir() {
+  if (!canPickDir) return;
+  $('saveDirRow').hidden = false; $('saveNoteDir').hidden = false; $('saveNoteDl').hidden = true;
+  $('saveDirName').textContent = saveDir ? saveDir.name : '未選択（「保存」を押すと選べます）';
+}
+async function pickSaveDir() {
+  const h = await window.showDirectoryPicker({ id: 'amada-plan-save', mode: 'readwrite', startIn: saveDir || 'desktop' });
+  saveDir = h; await storeSaveDir(h); showSaveDir();
+  return h;
+}
+// 同じ名前のファイルがあれば「 (1)」「 (2)」…を付けた、まだ無い名前を返す
+async function uniqueName(dir, base) {
+  const exists = async n => { try { await dir.getFileHandle(n); return true; } catch (e) { return false; } };
+  if (!(await exists(base + '.xlsx'))) return base + '.xlsx';
+  for (let i = 1; i < 1000; i++) { const n = `${base} (${i}).xlsx`; if (!(await exists(n))) return n; }
+  throw new Error('番号が足りません');
+}
 // 保存ダイアログ（ファイル名を任意で付けて保存）
 let lastYM = '', lastInfo = null;
 // 保存ファイル名の初期値：「選択機種 AMD生産計画 作成日（処理した日、2026.10.01形式）」（全機種共通。機種名とAMDの間は半角スペース）
@@ -1107,6 +1146,21 @@ async function doSave(){
   if (/[\\/:*?"<>|]/.test(name)) { msg.textContent = 'ファイル名に \\ / : * ? " < > | は使えません'; msg.className = 'save-msg ng'; $('saveName').focus(); return; }
   const filename = name + '.xlsx';
   const data = buildWorkbook(XLSX, lastRows, PROCESSORS[machine]);
+  if (canPickDir) {
+    try {
+      let dir = saveDir;
+      if (dir && (await dir.queryPermission({ mode: 'readwrite' })) !== 'granted' && (await dir.requestPermission({ mode: 'readwrite' })) !== 'granted') dir = null;
+      if (!dir) dir = await pickSaveDir();
+      const finalName = await uniqueName(dir, name);
+      const fh = await dir.getFileHandle(finalName, { create: true });
+      const w = await fh.createWritable(); await w.write(new Blob([data])); await w.close();
+      closeSave(); showDone(finalName);
+    } catch (e) {
+      if (e && e.name === 'AbortError') { msg.textContent = '保存を取り消しました（フォルダが選ばれませんでした）'; msg.className = 'save-msg'; return; }
+      closeSave(); showErr('保存できません', [{ cause: '選んだフォルダに保存できませんでした', fix: '「フォルダを選択」で保存先を選び直してから、もう一度保存してください' }]);
+    }
+    return;
+  }
   if (downloads){
     try {
       await downloads.save({ filename, data: new Blob([data]) });
@@ -1138,6 +1192,8 @@ function resetAll(){
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 $('dl').addEventListener('click', openSave);
+$('saveDirBtn').addEventListener('click', async () => { try { await pickSaveDir(); } catch (e) { /* 選ばずに閉じたときは何もしない */ } });
+loadSaveDir();
 $('saveOk').addEventListener('click', doSave);
 $('saveCancel').addEventListener('click', closeSave);
 $('saveName').addEventListener('keydown', e => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') closeSave(); });
