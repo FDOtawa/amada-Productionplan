@@ -579,7 +579,7 @@ const COUNTRY = [
   [/アラブ首長国連邦/, 'UAE'], [wordRe('U\\.?A\\.?E\\.?|UNITED\\s*ARAB\\s*EMIRATES'), 'UAE'],
   [/台湾/, '台湾'], [wordRe('TAIWAN'), '台湾'], [/香港/, '中国'], [wordRe('HONG\\s*KONG|HONGKONG'), '中国'],
   [/中国/, '中国'], [wordRe('CHINA'), '中国'], [/韓国/, '韓国'], [wordRe('KOREA'), '韓国'],
-  [/米国|アメリカ/, '米国'], [wordRe('U\\.?S\\.?A\\.?|U\\.S\\.|AMERICA|UNITED\\s*STATES'), '米国'],
+  [/米国|アメリカ/, '米国'], [wordRe('U\\.?S\\.?A\\.?|U\\.S\\.|AMERICA|UNITED\\s*STATES'), '米国'], [wordRe('AAI'), '米国'], // 【AAI】は米国（対比表の HG・HRB 大型で共通。ユーザー指定）
   [/タイ(?!ヤ|プ|ム|ル|ガー)/, 'タイ'], [wordRe('THAILAND|THAI'), 'タイ'],
   [/ベトナム/, 'ベトナム'], [wordRe('VIET\\s*NAM'), 'ベトナム'], [/インドネシア/, 'インドネシア'], [wordRe('INDONESIA'), 'インドネシア'],
   [/マレーシア/, 'マレーシア'], [wordRe('MALAYSIA'), 'マレーシア'], [/フィリピン/, 'フィリピン'], [wordRe('PHILIPPINES'), 'フィリピン'],
