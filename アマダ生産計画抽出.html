@@ -762,10 +762,10 @@ const MAX_FILES = 4;
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
 // allSheets: true ならファイル内のすべてのシートを読んで1つの表にまとめる
 const PROCESSORS = {
-  'HRB 土岐': {
+  'HRB KD': { // 2026-10-10 「HRB 土岐」から振り替え（土岐は名前の間違い。土岐の処理は未設定）
     allSheets: true, // 月ごとにシートが分かれることが多いため、全シートを同じ処理で読んで1つの帳票にまとめる
     sortKey: 'jit',  // まとめた後、最後にJIT日の早い順に並べ替える（空欄は最後、同日は元の順）
-    validate: (ws) => validateHRBToki(XLSX, ws),
+    validate: (ws) => validateHRBKD(XLSX, ws),
     extract:  (ws) => extractJIT(XLSX, ws, { prefix: 'HRB', exclude: 'AESA', year: null, month: null }),
     columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' },
       { key: 'dest', label: '仕向', value: 'EXP' }, { key: 'customer', label: '客先', value: 'AAI' }, { key: 'jit', label: 'JIT日', date: true, need: true }],
@@ -817,8 +817,8 @@ function sheetsOf(f, proc){
   return f.wb.SheetNames.filter(n => f.wb.Sheets[n] && f.wb.Sheets[n]['!ref']);
 }
 
-// 「HRB 土岐」のエラー定義
-function validateHRBToki(XLSX, ws){
+// 「HRB KD」のエラー定義
+function validateHRBKD(XLSX, ws){
   const errs = [];
   if (!ws || !ws['!ref']) return ['シートにデータがありません。'];
   const range = XLSX.utils.decode_range(ws['!ref']);
