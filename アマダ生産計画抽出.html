@@ -568,7 +568,9 @@ const colVal = (c, x) => c.value !== undefined ? c.value : x[c.key];
 // HRB大型（「(日付)ファイン様生産計画対比表.xlsx」）：(新)ﾍﾞﾝﾀﾞｰ大型と(旧)ﾍﾞﾝﾀﾞｰ大型を読み、
 // 全セルの前後の余白（半角・全角・見えない空白）を除き、A列の先頭「TY」を除いたシリアルで突き合わせる。
 // 両方にあれば(新)を採用、片方だけならその行を採用して1つのリストにする。1行目が見出し、3行目以降がデータ。
-const LARGE = { NEW: '(新)ベンダー大型', OLD: '(旧)ベンダー大型', FIRST_DATA_ROW: 2, A: 0, B: 1, D: 3, E: 4, J: 9 };
+const LARGE = { NEW: '(新)ベンダー大型', OLD: '(旧)ベンダー大型', PREFIX: 'TY', FIRST_DATA_ROW: 2, A: 0, B: 1, D: 3, E: 4, J: 9 };
+// HG：同じ対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 を読み、A列の先頭から「HG」を取り除く（ほかは HRB 大型と同じ）
+const MIDDLE_HG = { ...LARGE, NEW: '(新)ベンダー中型', OLD: '(旧)ベンダー中型', PREFIX: 'HG' };
 const trimAll = v => (v === undefined || v === null) ? '' : String(v).replace(/^\s+|\s+$/g, ''); // \s は半角・全角スペース、見えない空白、タブ、改行を含む
 const findSheet = (wb, want) => wb.SheetNames.find(n => n.normalize('NFKC').replace(/\s/g, '') === want);
 // 生産月「09月」→「2026年9月」：年は本アプリで処理した日で決める（実行月が5月以降なら1〜4月は翌年）
@@ -614,36 +616,36 @@ function toDate(v) {
   const m = trimAll(v).normalize('NFKC').match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);
   return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
 }
-function largeRows(XLSX, ws) {
+function largeRows(XLSX, ws, cfg = LARGE) {
   const range = XLSX.utils.decode_range(ws['!ref']);
   const v = (r, c) => { const cell = ws[XLSX.utils.encode_cell({ r, c })]; return cell ? (cell.v instanceof Date ? cell.v : trimAll(cell.w !== undefined && typeof cell.v !== 'number' ? cell.w : cell.v)) : ''; };
   const out = [];
-  for (let r = LARGE.FIRST_DATA_ROW; r <= range.e.r; r++) {
-    const ser = trimAll(v(r, LARGE.A)).normalize('NFKC').replace(/^TY/i, '');
+  for (let r = cfg.FIRST_DATA_ROW; r <= range.e.r; r++) {
+    const ser = trimAll(v(r, cfg.A)).normalize('NFKC').replace(new RegExp('^' + cfg.PREFIX, 'i'), '');
     if (!ser) continue;
-    out.push({ row: r + 1, serial: ser, monthRaw: v(r, LARGE.B), model: trimAll(v(r, LARGE.D)), customer: trimAll(v(r, LARGE.E)), jitRaw: v(r, LARGE.J) });
+    out.push({ row: r + 1, serial: ser, monthRaw: v(r, cfg.B), model: trimAll(v(r, cfg.D)), customer: trimAll(v(r, cfg.E)), jitRaw: v(r, cfg.J) });
   }
   return out;
 }
-function validateLarge(XLSX, wb) {
+function validateLarge(XLSX, wb, cfg = LARGE) {
   const errs = [];
-  for (const want of [LARGE.NEW, LARGE.OLD]) {
+  for (const want of [cfg.NEW, cfg.OLD]) {
     const name = findSheet(wb, want);
     if (!name) { errs.push(`項目の定義：シート「${want.replace('ベンダー', 'ﾍﾞﾝﾀﾞｰ')}」がありません。`); continue; }
     const ws = wb.Sheets[name];
     if (!ws || !ws['!ref']) { errs.push(`シート「${name}」にデータがありません。`); continue; }
     const head = c => { const cell = ws[XLSX.utils.encode_cell({ r: 0, c })]; return cell ? trimAll(cell.v).normalize('NFKC').replace(/\s/g, '').toUpperCase() : ''; };
-    const need = [[LARGE.A, 'A', 'SER.', 'Ser.'], [LARGE.B, 'B', '生産月', '生産月'], [LARGE.D, 'D', '機種名', '機種名'], [LARGE.E, 'E', '顧客', '顧客'], [LARGE.J, 'J', '着手日', '着手日']];
+    const need = [[cfg.A, 'A', 'SER.', 'Ser.'], [cfg.B, 'B', '生産月', '生産月'], [cfg.D, 'D', '機種名', '機種名'], [cfg.E, 'E', '顧客', '顧客'], [cfg.J, 'J', '着手日', '着手日']];
     const miss = need.filter(([c, , w]) => !head(c).includes(w));
     if (miss.length) errs.push(`項目の定義：シート「${name}」の1行目に見出し（${miss.map(([, l, , d]) => `${l}列「${d}」`).join('、')}）がありません。`);
   }
-  if (!errs.length && !largeRows(XLSX, wb.Sheets[findSheet(wb, LARGE.NEW)]).length && !largeRows(XLSX, wb.Sheets[findSheet(wb, LARGE.OLD)]).length)
+  if (!errs.length && !largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.NEW)], cfg).length && !largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.OLD)], cfg).length)
     errs.push('列の定義：3行目以降のA列にシリアルがありません。');
   return errs;
 }
-function extractLarge(XLSX, wb) {
+function extractLarge(XLSX, wb, cfg = LARGE) {
   const runDate = new Date();
-  const nw = largeRows(XLSX, wb.Sheets[findSheet(wb, LARGE.NEW)]), old = largeRows(XLSX, wb.Sheets[findSheet(wb, LARGE.OLD)]);
+  const nw = largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.NEW)], cfg), old = largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.OLD)], cfg);
   const inNew = new Set(nw.map(x => x.serial));
   const picked = [...nw.map(x => ({ ...x, from: '新' })), ...old.filter(x => !inNew.has(x.serial)).map(x => ({ ...x, from: '旧' }))];
   const rows = picked.map(x => {
@@ -777,6 +779,18 @@ const PROCESSORS = {
     sortKey: 'jit', // JIT日（着手日）の早い順（空欄は最後）
     noMarkNote: n => `J列（着手日）が空欄または日付でない行が${n}件あります。JIT日は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。(新)(旧)ﾍﾞﾝﾀﾞｰ大型の3行目以降のA列にシリアルがあるか確認してください。',
+  },
+  'HG': {
+    book: true, // 対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 の2シート単位で処理する。A列の先頭「HG」を取り除く以外は HRB 大型と同じ
+    validate: (wb) => validateLarge(XLSX, wb, MIDDLE_HG),
+    extract:  (wb) => extractLarge(XLSX, wb, MIDDLE_HG),
+    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }],
+    outName: 'JIT日一覧',
+    earliestYM: true,
+    sortKey: 'jit',
+    noMarkNote: n => `J列（着手日）が空欄または日付でない行が${n}件あります。JIT日は空欄で出力します。`,
+    emptyMsg: '抽出できる行がありませんでした。(新)(旧)ﾍﾞﾝﾀﾞｰ中型の3行目以降のA列にシリアルがあるか確認してください。',
   },
 };
 // 機種が読むシート（allSheets の機種は空のシートを除くすべて）
