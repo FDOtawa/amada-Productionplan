@@ -548,12 +548,12 @@ const colVal = (c, x) => c.value !== undefined ? c.value : x[c.key];
 const LARGE = { NEW: '(新)ベンダー大型', OLD: '(旧)ベンダー大型', PREFIX: 'TY', FIRST_DATA_ROW: 2, A: 0, B: 1, D: 3, E: 4, J: 9 };
 // HG：同じ対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 を読み、A列の先頭から「HG」を取り除く（ほかは HRB 大型と同じ）
 const MIDDLE_HG = { ...LARGE, NEW: '(新)ベンダー中型', OLD: '(旧)ベンダー中型', PREFIX: 'HG', NOTE: hgNote };
-// HGの備考：まずシリアル（HG削除後）の下から4桁目で 2→Y化 Σ10、7→Y化 Σ7、8→B&R（ほかは無し）。
+// HGの備考：まずシリアル（HG削除後）の下から4桁目で 2・4→Y化 Σ10、7→Y化 Σ7、8→B&R（ほかは無し）。
 // そのあとに機種名に「ATC」「ARM」があれば半角スペースを空けて付け足す（例：Y化 Σ10 ATC、B&R ARM）
 function hgNote(model, serial) {
   const m = String(model).normalize('NFKC').toUpperCase();
   const d = String(serial).length >= 4 ? String(serial).slice(-4, -3) : '';
-  const parts = [d === '2' ? 'Y化 Σ10' : d === '7' ? 'Y化 Σ7' : d === '8' ? 'B&R' : ''];
+  const parts = [d === '2' || d === '4' ? 'Y化 Σ10' : d === '7' ? 'Y化 Σ7' : d === '8' ? 'B&R' : ''];
   if (m.includes('ATC')) parts.push('ATC');
   if (m.includes('ARM')) parts.push('ARM');
   return parts.filter(Boolean).join(' ');
