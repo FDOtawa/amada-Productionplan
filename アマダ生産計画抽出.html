@@ -1078,7 +1078,9 @@ const PROCESSORS = {
     validate: (ws) => validateHRBKD(XLSX, ws),
     extract:  (ws) => extractJIT(XLSX, ws, { prefix: 'HRB', exclude: 'AESA', year: null, month: null }),
     columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' },
-      { key: 'dest', label: '仕向', value: 'EXP' }, { key: 'customer', label: '客先', value: 'AAI' }, { key: 'jit', label: 'JIT日', date: true, need: true }],
+      { key: 'dest', label: '仕向', value: 'EXP' }, { key: 'customer', label: '客先', value: 'AAI' },
+      { key: 'category', label: 'カテゴリ', value: '制御盤' }, { key: 'state', label: '部材状態', value: 'FD南陵' }, { key: 'shipTo', label: '出荷先', value: 'KD' }, // 2026-10-10 追加（全行同じ値）
+      { key: 'jit', label: 'JIT日', date: true, need: true }],
     outName: 'JIT日一覧',
     noMarkNote: n => `▲が見つからない行が${n}件あります。JIT日は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。7行目以降のD列・F列にデータがあるか確認してください。',
@@ -1100,7 +1102,9 @@ const PROCESSORS = {
     validate: (wb) => validateLarge(XLSX, wb),
     extract:  (wb) => extractLarge(XLSX, wb),
     columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
-      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }],
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
+      { key: 'category', label: 'カテゴリ', value: '制御盤' }, { key: 'state', label: '部材状態', value: 'FD南陵' }, { key: 'shipTo', label: '出荷先', value: '富士宮' }, // 2026-10-10 追加（全行同じ値）
+      { key: 'jit', label: 'JIT日', date: true, need: true }],
     outName: 'JIT日一覧',
     earliestYM: true,
     sortKey: 'jit', // JIT日（着手日）の早い順（空欄は最後）
