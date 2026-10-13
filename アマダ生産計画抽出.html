@@ -1358,6 +1358,8 @@ function hankakuName(t){
   return out;
 }
 // ===== EGB 別盤 =====
+// 行の網掛け：AESA シートから引き出した行＝薄い黄、納入先 ITｴﾝｼﾞ＝薄い青（見出しより濃い）、㈱ｱｻﾋ＝薄い赤
+function egbSubFill(x){ return x.sheet === 'AESA' ? 'yellow' : x.shipTo === 'ITｴﾝｼﾞ' ? 'blue' : x.shipTo === '㈱ｱｻﾋ' ? 'red' : ''; }
 // 会社カレンダー（赤い網掛け＝休み）。営業日＝この休みを除いた日。2026年はユーザー提供の令和8年度カレンダー。
 // カレンダーが無い年は、仮に「日曜・月曜・祝日を休み」とする（2026-10-13 ユーザー指示 A案。2027年版は後で入る）
 const COMPANY_HOLIDAYS = {
@@ -1697,7 +1699,7 @@ function makeSheet(XLSX, rows, cols) {
 }
 // 帳票（Excel）を作る。proc.sheets があればシートを複数作る（{ name, filter: 行を選ぶ関数, columns: 省略時は proc.columns }）
 function sheetPlan(rows, proc) {
-  return proc.sheets ? proc.sheets.map(sh => { const r = sh.filter ? rows.filter(sh.filter) : rows; return { name: sh.name, cols: sh.columns || proc.columns, rows: sh.order ? sh.order(r) : r }; }) // order：シートだけの並べ方
+  return proc.sheets ? proc.sheets.map(sh => { const r = sh.filter ? rows.filter(sh.filter) : rows; return { name: sh.name, cols: sh.columns || proc.columns, rows: sh.order ? sh.order(r) : r, rowFill: sh.rowFill }; }) // order：シートだけの並べ方
     : [{ name: proc.outName, cols: proc.columns, rows }];
 }
 function buildWorkbook(XLSX, rows, proc) {
@@ -1706,17 +1708,23 @@ function buildWorkbook(XLSX, rows, proc) {
   plan.forEach(sh => XLSX.utils.book_append_sheet(wb, makeSheet(XLSX, sh.rows, sh.cols), sh.name));
   // 印刷時に1行目（見出し）を各ページの先頭に出す（シートごと）
   wb.Workbook = { Names: plan.map((sh, i) => ({ Name: '_xlnm.Print_Titles', Sheet: i, Ref: `'${sh.name}'!$1:$1` })) };
-  return setA4Print(XLSX, XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellDates: true }));
+  // 行の網掛け（シートの rowFill か機種の rowFill が色の名前を返した行だけ）
+  const fills = plan.map(sh => { const f = sh.rowFill || proc.rowFill; return f ? sh.rows.map(x => f(x) || '') : []; });
+  return setA4Print(XLSX, XLSX.write(wb, { type: 'array', bookType: 'xlsx', cellDates: true }), fills);
 }
 // 罫線（全セルに細線）と見出し行（1行目）の薄い青の網掛け。SheetJS（無償版）は書式を書けないため styles.xml とシートXMLを直接直す
-function addGridAndHeader(XLSX, zip, sheetEnts) {
+// 行の網掛けの色（2026-10-14：EGB別盤の納入先 ITｴﾝｼﾞ・㈱ｱｻﾋ と AESA の行）
+const ROW_FILLS = { blue: 'FFBDD7EE', red: 'FFFFC7CE', yellow: 'FFFFF2CC' };
+function addGridAndHeader(XLSX, zip, sheetEnts, rowFills) {
   const st = XLSX.CFB.find(zip, '/xl/styles.xml');
   if (!st) return;
   let sx = new TextDecoder().decode(st.content);
   const thin = '<left style="thin"><color rgb="FF808080"/></left><right style="thin"><color rgb="FF808080"/></right><top style="thin"><color rgb="FF808080"/></top><bottom style="thin"><color rgb="FF808080"/></bottom><diagonal/>';
   let borderId = 0, fillId = 0;
   sx = sx.replace(/<borders count="(\d+)">([\s\S]*?)<\/borders>/, (m, n, body) => { borderId = +n; return `<borders count="${+n + 1}">${body}<border>${thin}</border></borders>`; });
-  sx = sx.replace(/<fills count="(\d+)">([\s\S]*?)<\/fills>/, (m, n, body) => { fillId = +n; return `<fills count="${+n + 1}">${body}<fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills>`; });
+  const fillOf = rgb => `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
+  const extra = Object.keys(ROW_FILLS);
+  sx = sx.replace(/<fills count="(\d+)">([\s\S]*?)<\/fills>/, (m, n, body) => { fillId = +n; return `<fills count="${+n + 1 + extra.length}">${body}${fillOf('FFDDEBF7')}${extra.map(k => fillOf(ROW_FILLS[k])).join('')}</fills>`; });
   if (!borderId || !fillId) return;
   const setAttr = (xf, k, v) => new RegExp(`\\b${k}="`).test(xf) ? xf.replace(new RegExp(`\\b${k}="[^"]*"`), `${k}="${v}"`) : xf.replace(/^<xf\b/, `<xf ${k}="${v}"`);
   const map = {};
@@ -1726,18 +1734,20 @@ function addGridAndHeader(XLSX, zip, sheetEnts) {
     xfs.forEach((xf, i) => {
       const b = setAttr(setAttr(xf, 'borderId', borderId), 'applyBorder', 1);
       const h = setAttr(setAttr(b, 'fillId', fillId), 'applyFill', 1);
-      map[i] = [xfs.length + add.length, xfs.length + add.length + 1];
-      add.push(b, h);
+      const base = xfs.length + add.length;
+      map[i] = [base, base + 1]; add.push(b, h);
+      extra.forEach((k, j) => { map[i][k] = base + 2 + j; add.push(setAttr(setAttr(b, 'fillId', fillId + 1 + j), 'applyFill', 1)); }); // 行の網掛け用
     });
     return `<cellXfs count="${xfs.length + add.length}">${xfs.join('')}${add.join('')}</cellXfs>`;
   });
   st.content = new TextEncoder().encode(sx); st.size = st.content.length;
-  sheetEnts.forEach(sheetEnt => {
+  sheetEnts.forEach((sheetEnt, si) => {
+  const rf = rowFills[si] || [];
   let xml = new TextDecoder().decode(sheetEnt.content);
   xml = xml.replace(/<c r="([A-Z]+)(\d+)"([^>]*?)(\/?)>/g, (m, col, row, attrs, close) => {
     const cur = +((attrs.match(/\bs="(\d+)"/) || [])[1] || 0);
     const ids = map[cur]; if (!ids) return m;
-    const s = ids[+row === 1 ? 1 : 0];
+    const s = +row === 1 ? ids[1] : (rf[+row - 2] && ids[rf[+row - 2]] !== undefined ? ids[rf[+row - 2]] : ids[0]);
     attrs = /\bs="/.test(attrs) ? attrs.replace(/\bs="\d+"/, `s="${s}"`) : `${attrs} s="${s}"`;
     return `<c r="${col}${row}"${attrs}${close}>`;
   });
@@ -1746,7 +1756,7 @@ function addGridAndHeader(XLSX, zip, sheetEnts) {
 }
 // 印刷設定：A4縦・横幅を1ページに収める（縦は自動）・フッターにページ番号
 // SheetJS（無償版）は用紙設定を書き出せないため、できたxlsx（zip）のシートXMLに直接書き足す
-function setA4Print(XLSX, data) {
+function setA4Print(XLSX, data, fills) {
   try {
     const zip = XLSX.CFB.read(new Uint8Array(data), { type: 'buffer' });
     const ents = [];
@@ -1759,7 +1769,7 @@ function setA4Print(XLSX, data) {
       xml = xml.replace(/(<pageMargins[^>]*\/>)/, '$1<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;C&amp;P / &amp;N</oddFooter></headerFooter>');
       ent.content = new TextEncoder().encode(xml); ent.size = ent.content.length;
     });
-    addGridAndHeader(XLSX, zip, ents);
+    addGridAndHeader(XLSX, zip, ents, fills || []);
     return XLSX.CFB.write(zip, { fileType: 'zip', type: 'array' });
   } catch (e) { return data; } // 失敗しても印刷設定なしで保存できるようにする
 }
@@ -1780,7 +1790,7 @@ const PROCESSORS = {
       return { rows: [...a.rows.map(x => ({ ...x, egb: 'ctrl' })), ...b.rows.map(x => ({ ...x, egb: 'sub' }))], excluded: a.excluded, noMark: [...a.noMark, ...b.noMark], prodYear: null, prodMonth: null }; },
     columns: null, // 下で EGB 制御盤の列を入れる
     outName: 'EGB集計',
-    sheets: [{ name: 'EGB制御盤', filter: x => x.egb === 'ctrl', columns: null }, { name: 'EGB別盤', filter: x => x.egb === 'sub', columns: null }],
+    sheets: [{ name: 'EGB制御盤', filter: x => x.egb === 'ctrl', columns: null }, { name: 'EGB別盤', filter: x => x.egb === 'sub', columns: null, rowFill: x => egbSubFill(x) }],
     noMarkNote: n => `JIT日が空欄の行が${n}件あります（着手日が空欄、またはロボットだけの別盤の行）。JIT日は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。対比表を取り込んでください。',
   },
@@ -1808,6 +1818,7 @@ const PROCESSORS = {
       { key: 'dest', label: '仕向' }, { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'shipTo', label: '納入先' },
       { key: 'jit', label: 'JIT日', date: true, need: true }, { key: 'ctrlJit', label: '制御盤JIT日', date: true }, { key: 'k', label: 'K数' }],
     outName: 'EGB別盤',
+    rowFill: egbSubFill, // 2026-10-14：A〜K列の網掛け（ITｴﾝｼﾞ＝青、㈱ｱｻﾋ＝薄い赤、AESA から＝薄い黄）
     noMarkNote: n => `JIT日が決まらない行が${n}件あります（制御盤JIT日が空欄、またはロボットだけの行）。JIT日は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。対比表に EGB の AE・RE・ARE の機種があるか確認してください。',
   },
