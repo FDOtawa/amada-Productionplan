@@ -1254,6 +1254,7 @@ function extractEGBCtrl(XLSX, wb){
     const inNew = new Set(nw.map(x => x.serial));
     [...nw, ...old.filter(x => !inNew.has(x.serial))].forEach(x => {
       if (!isEGB(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EGB ではない' }); return; }
+      if (/AESA/.test((x.model + ' ' + x.customer).normalize('NFKC').toUpperCase())) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: 'AESA（制御盤は AESA が自社で作る）' }); return; } // AESA は EGB 制御盤から外す（2026-10-13 ユーザー指示）
       const dest = egbDest(x.model);
       rows.push({ row: x.row, sheet: cfg.NEW, month: prodMonthLabel(x.monthRaw, runDate), model: egbModel(x.model), serial: x.serial, dest,
         country: dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, jit: toDate(x.jitRaw) });

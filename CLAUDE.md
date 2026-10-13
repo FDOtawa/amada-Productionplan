@@ -96,6 +96,7 @@
   - **(新)(旧)の抽出は HG と同じ方法**（ユーザー指示）：シートごと（ﾍﾞﾝﾀﾞｰ小型・ASTRO・EG）に(新)と(旧)を TS 削除後のシリアルで突き合わせ、両方にあれば(新)の行をまるごと採用、片方だけならその行を採用して1つのリストにする。
   - **A列（Ser.）の先頭の「TS」を消す**（HRB 大型の「TY」、HG の「HG」と同じ考え。例 TS13329056 → 13329056）。
   - **出力7列**（ユーザー指示、この順）：アマダ生産月（B列。HG と同じく「2026年9月」、年は処理した日）、機種名（D列）、メカシリアル（A列の TS 削除後）、仕向（機種名に EXP・EX・CE → EXP、無ければ DMS。HG の「EXP だけ」の判定では _EX・_CE が DMS になるため EGB のきまりを使う）、国名（これまでと同じ countryOf）、客先名（E列）、JIT日（J列＝着手日）。シート名「EGB制御盤」（仮）、JIT日の早い順・空欄は下（仮）。
+  - **AESA は EGB 制御盤から外す**（機種名か客先名に AESA がある行。ユーザー指示）。サンプルでは EGB6020AE_CE の2件（【AESA】AMADA ITALIA・TAVECCHIO）が除外 → 396件（除外3件）。
   - **EGB 全般（別盤も含む）：機種名の「EX」は「EXP」に書き直す**（egbModel。例 EGB4010E_EX → EGB4010E_EXP。ユーザー指示）。
   - 実装：PROCESSORS 'EGB 制御盤'（book、validateEGBCtrl・extractEGBCtrl、EGB_PAIRS は LARGE の後で定義されるので関数）。largeRows（PREFIX 'TS'）・validateLarge を共用。
   - 試し（20260919 の対比表を履歴から一時的に置いて試し、試し後に消した）：398件（(新)ﾍﾞﾝﾀﾞｰ小型 300＋(新)EG 98）、除外1件（HG8025C：EGB ではない）。DMS 201／EXP 197。EXP の国名の空欄13件（オセアニア、Amada do Brasil（→ 2026-10-13 **「BRASIL」もブラジル**と国名の表に追加。全機種共通の countryOf）、【AESA】AMADA ITALIA（→ **「ITALIA」もイタリア**と追加）、【AESA】TAVECCHIO( EX AITALIA)（→ 空欄のまま。ユーザー指示）、アジアパシフィック、【AESA】AMADA ITALIA・TAVECCHIO、オーバーシーズ、「引当解除 2026-」）。
