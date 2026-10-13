@@ -129,6 +129,11 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 .tile:has(input:checked) .dot{background:#fff;border-color:#fff;color:var(--accent-dark)}.tile:has(input:checked) .dot svg{display:block}
 .tile:has(input:focus-visible){outline:3px solid #1F6FB2;outline-offset:2px}
 .tile.blank{visibility:hidden}
+/* 集計の下層の機種：全角1文字分（17px）右へ。空いた所に「└」 */
+.subrow{display:flex;align-items:center}
+.subrow .subm{flex:none;width:17px;font-size:19px;line-height:1;color:#5D646B;font-weight:700;text-align:left;margin-top:-6px}
+.subrow .tile{flex:1;min-width:0}
+html[data-theme="black"] .subrow .subm{color:#AEB6BE}
 #mclear{position:absolute;right:33px;bottom:29px;width:calc(50% - 47px);height:39px;font-size:15px}
 
 /* 処理開始：大きなガラスのボタン */
@@ -2152,6 +2157,8 @@ const MACHINES = [
   ['EGB 集計','EGB 制御盤','EGB 別盤','HRB 集計','HRB 土岐','HRB KD','HRB 大型','HRB ATC盤'], // 機種名の空白は半角（2026-10-10 ユーザー指定）
   ['HG','複合機','レーザ','AE','発振器','小板発振器','FLW','']
 ];
+// 集計の下層の機種（2026-10-13 ユーザー指示）：ボタンを全角1文字分右に置き、左に「└」を付けて下層であることを示す
+const SUB_MACHINES = new Set(['HRB 土岐', 'HRB KD', 'HRB 大型', 'HRB ATC盤']);
 (function renderMachines(){
   const g = $('mgrid');
   MACHINES.forEach(col => {
@@ -2164,7 +2171,10 @@ const MACHINES = [
       r.addEventListener('change', () => { machine = r.value; updateDone(); showErr(''); files.forEach(f => f.invalid = false); renderSlots(); markSlots(); if (completed) run(); });
       l.appendChild(r);
       l.insertAdjacentHTML('beforeend', `<span class="dot">${CHECK_ICON}</span><span class="tname">${esc(name)}</span>`);
-      c.appendChild(l);
+      if (SUB_MACHINES.has(name)) {
+        const row = document.createElement('div'); row.className = 'subrow';
+        row.innerHTML = '<span class="subm" aria-hidden="true">└</span>'; row.appendChild(l); c.appendChild(row);
+      } else c.appendChild(l);
     });
     g.appendChild(c);
   });
