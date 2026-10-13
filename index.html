@@ -77,7 +77,7 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
 
 /* ファイル枠 */
-.files{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px} /* 6ファイル＝3列×2段（2026-10-13） */
+.files{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px} /* 8ファイル＝4列×2段（2026-10-13。6→8） */
 .slot{position:relative;display:flex;align-items:center;gap:10px;height:56px;padding:0 12px 0 0;border:1px solid #8F979F;border-radius:5px;background:#fff;box-shadow:inset 0 1px 4px rgba(0,0,0,.14),0 1px 0 #fff;overflow:hidden;min-width:0}
 .slot .pick{all:unset;box-sizing:border-box;flex:1;min-width:0;height:100%;display:flex;align-items:center;gap:14px;padding:0 4px 0 16px;cursor:pointer;position:relative;z-index:1}
 .slot .pick:focus-visible{outline:3px solid #1F6FB2;outline-offset:-3px;border-radius:5px}
@@ -101,7 +101,7 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 
 .clearrow{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:12px}
 .fhint{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;color:var(--warn);white-space:nowrap}.fhint svg{width:18px;height:18px}
-#fclear{position:relative;overflow:hidden;width:calc((100% - 20px) * 2 / 3 + 10px);height:44px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:.08em;border-radius:5px;color:#3A2A00;
+#fclear{position:relative;overflow:hidden;width:calc((100% - 30px) / 2 + 10px);height:44px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:.08em;border-radius:5px;color:#3A2A00;
   background:linear-gradient(#FFF3B8,#FFE070 49%,#F1C531 50%,#F8D64E);border:1px solid #9C7C12;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 2px 5px rgba(120,90,0,.35)}
 #fclear svg{width:20px;height:20px;position:relative}
 #fclear span{position:relative}
@@ -452,11 +452,11 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 
   <main>
     <section class="card" aria-labelledby="fTitle">
-      <div class="card-h"><span class="gem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span><h2 id="fTitle">ファイル取り込み</h2><span class="badge" id="fileBadge">0 / 6</span></div>
+      <div class="card-h"><span class="gem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span><h2 id="fTitle">ファイル取り込み</h2><span class="badge" id="fileBadge">0 / 8</span></div>
       <label class="drop" id="drop">
         <span class="gem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5"/><path d="M12 12v8M8.5 15.5 12 12l3.5 3.5"/></svg></span>
         <span class="dtext">
-          <strong id="dropTitle">Excelファイルを選ぶ（6つまで）</strong>
+          <strong id="dropTitle">Excelファイルを選ぶ（8つまで）</strong>
           <small id="dropSub">画面のどこにでもドラッグ＆ドロップできます。複数まとめて選ぶこともできます（.xlsx / .xlsm / .xls）</small>
         </span>
         <span class="btn-ghost" aria-hidden="true">ファイルを選択</span>
@@ -482,7 +482,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
     <button id="done" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg><span>処理開始</span></button>
   </main>
 
-  <footer class="status"><span class="lamp" id="stLamp"></span><span id="stState">ファイルを取り込んでください</span><span class="sep"></span><span id="stFiles">取り込みファイル 0 / 6</span><span class="sep"></span><span id="stMachine">機種：未選択</span><span class="r" id="stDate"></span></footer>
+  <footer class="status"><span class="lamp" id="stLamp"></span><span id="stState">ファイルを取り込んでください</span><span class="sep"></span><span id="stFiles">取り込みファイル 0 / 8</span><span class="sep"></span><span id="stMachine">機種：未選択</span><span class="r" id="stDate"></span></footer>
 
   <section id="result" hidden aria-live="polite">
     <div class="bar"><div class="count" id="count"></div><button id="dl" disabled>Excelを保存</button></div>
@@ -494,7 +494,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
   <div class="overlay" id="overlay" hidden aria-hidden="true">
     <div class="box">
       <span class="gem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5"/><path d="M12 12v8M8.5 15.5 12 12l3.5 3.5"/></svg></span>
-      <strong>ここにExcelファイルをドロップ（6つまで）</strong>
+      <strong>ここにExcelファイルをドロップ（8つまで）</strong>
       <small>.xlsx / .xlsm / .xls</small>
     </div>
   </div>
@@ -1478,7 +1478,7 @@ function setA4Print(XLSX, data) {
 }
 
 const $ = id => document.getElementById(id);
-const MAX_FILES = 6; // 2026-10-13 ユーザー指示で4→6
+const MAX_FILES = 8; // 2026-10-13 ユーザー指示で4→6→8
 // 機種ごとの処理方法。ここに登録した機種だけ抽出できる
 // validate: ファイルが機種の定義（行・列・項目）に合っているかを調べ、合わない点を返す
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
