@@ -1759,6 +1759,19 @@ const MAX_FILES = 8; // 2026-10-13 ユーザー指示で4→6→8
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
 // allSheets: true ならファイル内のすべてのシートを読んで1つの表にまとめる
 const PROCESSORS = {
+  'EGB 集計': { // 2026-10-13：EGB 制御盤と EGB 別盤をまとめて1つのファイルに。HRB 集計のような合算シートは作らず、2シート（EGB制御盤・EGB別盤）を並べる
+    book: true,
+    sortKey: 'jit',
+    earliestYM: true,
+    validate: (wb) => [...validateEGBCtrl(XLSX, wb), ...validateEGBSub(XLSX, wb)],
+    extract:  (wb) => { const a = extractEGBCtrl(XLSX, wb), b = extractEGBSub(XLSX, wb);
+      return { rows: [...a.rows.map(x => ({ ...x, egb: 'ctrl' })), ...b.rows.map(x => ({ ...x, egb: 'sub' }))], excluded: a.excluded, noMark: [...a.noMark, ...b.noMark], prodYear: null, prodMonth: null }; },
+    columns: null, // 下で EGB 制御盤の列を入れる
+    outName: 'EGB集計',
+    sheets: [{ name: 'EGB制御盤', filter: x => x.egb === 'ctrl', columns: null }, { name: 'EGB別盤', filter: x => x.egb === 'sub', columns: null }],
+    noMarkNote: n => `JIT日が空欄の行が${n}件あります（着手日が空欄、またはロボットだけの別盤の行）。JIT日は空欄で出力します。`,
+    emptyMsg: '抽出できる行がありませんでした。対比表を取り込んでください。',
+  },
   'EGB 制御盤': { // 2026-10-13：対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ小型（標準機）と (新)(旧)EG（小型機）から。新旧の突き合わせは HG と同じ
     book: true,
     sortKey: 'jit',
@@ -1892,6 +1905,10 @@ const PROCESSORS = {
     emptyMsg: '抽出できる行がありませんでした。(新)(旧)ﾍﾞﾝﾀﾞｰ中型の3行目以降のA列にシリアルがあるか確認してください。',
   },
 };
+// EGB 集計の列は、EGB 制御盤・EGB 別盤の列をそのまま使う
+PROCESSORS['EGB 集計'].columns = PROCESSORS['EGB 制御盤'].columns;
+PROCESSORS['EGB 集計'].sheets[0].columns = PROCESSORS['EGB 制御盤'].columns;
+PROCESSORS['EGB 集計'].sheets[1].columns = PROCESSORS['EGB 別盤'].columns;
 // 機種が読むシート（allSheets の機種は空のシートを除くすべて）
 function sheetsOf(f, proc){
   if (proc && proc.book) return [null]; // null＝ファイル（ブック）全体を渡す
