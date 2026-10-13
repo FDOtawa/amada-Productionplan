@@ -129,9 +129,9 @@ main{width:1720px;margin:0 auto;padding:18px 0;display:flex;flex-direction:colum
 .tile:has(input:checked) .dot{background:#fff;border-color:#fff;color:var(--accent-dark)}.tile:has(input:checked) .dot svg{display:block}
 .tile:has(input:focus-visible){outline:3px solid #1F6FB2;outline-offset:2px}
 .tile.blank{visibility:hidden}
-/* 集計の下層の機種：全角1文字分（17px）右へ。空いた所に「└」 */
+/* 集計の下層の機種：全角1文字半（25.5px）右へ。空いた所に「└」 */
 .subrow{display:flex;align-items:center}
-.subrow .subm{flex:none;width:17px;font-size:19px;line-height:1;color:#5D646B;font-weight:700;text-align:left;margin-top:-6px}
+.subrow .subm{flex:none;width:25.5px;padding-left:8.5px;box-sizing:border-box;font-size:19px;line-height:1;color:#5D646B;font-weight:700;text-align:left;margin-top:-6px} /* 下層のボタンは全角1文字半（25.5px）右へ、「└」は半角分右に寄せる（2026-10-13 ユーザー指示 B案） */
 .subrow .tile{flex:1;min-width:0}
 html[data-theme="black"] .subrow .subm{color:#AEB6BE}
 #mclear{position:absolute;right:33px;bottom:29px;width:calc(50% - 47px);height:39px;font-size:15px}
