@@ -588,7 +588,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
  <div class="sheetbox res"><div class="t">② シート「EGB別盤」</div><div class="r">EGB 別盤と同じ</div></div>
 </div>
 <ul><li>HRB 集計とちがい、制御盤と別盤を合わせたシートは作りません。2つのシートが並ぶだけです。</li>
-<li>それぞれのシートの中身・並び順は、EGB 制御盤・EGB 別盤のボタンで出したものと同じです。</li>
+<li>それぞれのシートの中身・並び順・色分けは、EGB 制御盤・EGB 別盤のボタンで出したものと同じです。EGB 制御盤・EGB 別盤のきまりが変わると、EGB 集計にも自動で同じように反映されます。</li>
 <li>個別に出したいときは、下層の EGB 制御盤・EGB 別盤のボタンも使えます。</li></ul>
 <p class="ex">保存名の例：EGB集計 AMD生産計画 2026.10.13</p></div>
 <div class="mblk" data-m="EGB 制御盤"><h4>EGB 制御盤</h4>
@@ -645,6 +645,12 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <li>JIT日と制御盤JIT日は、どちらも J列（着手日）です。</li>
 <li>客先名は「AESA」、国名は「欧州」です。ロボットは AESA シートの EGBROBOT から、種類と下3桁で探します（例：EGRE6037 ↔ EGRB1037）。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th></tr></thead><tbody><tr><td>アマダ生産月／機種名／メカシリアル／ロボットシリアル／仕向／国名／客先名／納入先／JIT日／制御盤JIT日／K数</td></tr></tbody></table>
+<h4>行の色分け（網掛け）</h4>
+<p>帳票の行（A〜K列）を、次のように色で塗り分けます。</p>
+<table class="mt"><thead><tr><th>行</th><th>色</th></tr></thead><tbody>
+<tr><td>納入先が ITｴﾝｼﾞ</td><td><span style="display:inline-block;width:60px;height:18px;background:#BDD7EE;border:1px solid #999;vertical-align:middle"></span> 薄い青（見出しの青より少し濃い）</td></tr>
+<tr><td>納入先が ㈱ｱｻﾋ</td><td><span style="display:inline-block;width:60px;height:18px;background:#FFC7CE;border:1px solid #999;vertical-align:middle"></span> 薄い赤</td></tr>
+<tr><td>AESA シートから引き出した行</td><td><span style="display:inline-block;width:60px;height:18px;background:#FFF2CC;border:1px solid #999;vertical-align:middle"></span> 薄い黄</td></tr></tbody></table>
 <p>シート名「<b>EGB別盤</b>」。JIT日の早い順（空欄は下）です。</p>
 <p class="ex">保存名の例：EGB別盤 AMD生産計画 2026.10.13</p></div>
 <div class="mblk" data-m="HRB 集計"><h4>HRB 集計</h4>
@@ -669,7 +675,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <li>3つのシートとも <b>JIT日の早い順</b>（「未定」は一番下）です。</li>
 <li><b>HRB集計シートだけ</b>：同じシリアルの制御盤とATC盤が<b>両方とも「未定」</b>のときは、その制御盤の行の<b>すぐ次</b>に ATC盤の行を置きます（例：10395112）。</li>
 <li>保存画面に、取り込んだ機種ごとの件数・重なりの件数・シートごとの件数が出ます。足りない元ファイルがあるときは「取り込まれていない元ファイル」と注意が出ます。</li>
-<li>個別に処理したいときは、下層の HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 のボタンも今までどおり使えます。</li></ul>
+<li>個別に処理したいときは、下層の HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 のボタンも今までどおり使えます。下層の機種のきまりが変わると、HRB 集計にも自動で同じように反映されます。</li></ul>
 <p class="ex">保存名の例：HRB集計 AMD生産計画 2026.10.13</p></div>
 <div class="mblk" data-m="HRB 土岐"><h4>HRB 土岐</h4>
 <p><b>元ファイル：</b>ファイン電子用生産機資料-〇〇〇〇〇〇〇〇.xlsx（例：ファイン電子用生産機資料-20260922.xlsx）。1行目が見出し、2行目からデータです。</p>
@@ -832,7 +838,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 </tbody></table>
 <p class="ex">例：HG の一覧表</p>
 <ul>
-<li>1行目は<b>見出し（薄い青）</b>、すべてのセルに<b>罫線</b>が付きます。</li>
+<li>1行目は<b>見出し（薄い青）</b>、すべてのセルに<b>罫線</b>が付きます。EGB 別盤では、納入先や AESA によって行に色が付きます（7章）。</li>
 <li>HRB 土岐は「HRB土岐制御盤」「HRB-ATC盤」の<b>2つのシート</b>に分かれます（どちらのシートも同じ形です）。HRB ATC盤のシート名は「ツールステーション」です。HRB 集計は「HRB集計」「HRB制御盤」「HRB-ATC盤」の3つのシート、EGB 集計は「EGB制御盤」「EGB別盤」の2つのシートです。</li>
 <li><b>客先名</b>は、全角の英字・数字・記号（（株）などのカッコ）とスペースを半角に、カタカナを半角カタカナにそろえます（例：（株）アマダベンディング → (株)ｱﾏﾀﾞﾍﾞﾝﾃﾞｨﾝｸﾞ）。英字の大文字・小文字は元の表のままです。</li>
 <li>列の幅は、一番長い文字に合わせて<b>自動で広がります</b>（文字が切れません）。</li>
