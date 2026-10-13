@@ -1241,6 +1241,21 @@ function extractSum(XLSX, wb){
 // 制御盤＝土岐（AESA 以外）＋KD＋大型。土岐とKDに同じシリアルがあれば、土岐の行の JIT日（納期）を KD の日付にする。
 // ATC盤＝土岐の ATC（AESA も含む。JIT日は3週間前）＋ツールステーション。同じシリアルがあれば、土岐の行の JIT日をツールステーションの日付にする。
 // 片方にしか無い行はそのまま出力する。
+// HRB集計シートの並べ方（2026-10-13 ユーザー指示）：同じシリアルの制御盤とATC盤が、両方とも JIT日「未定」のときは、その制御盤の行のすぐ次に ATC盤の行を置く
+function sumOrder(rows){
+  const key = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
+  const undec = x => !(x.jit instanceof Date);
+  const ctrlKeys = new Set(rows.filter(x => x.category === '制御盤' && undec(x) && key(x)).map(key));
+  const moving = new Map();
+  rows.forEach(x => { if (x.category === 'ATC盤' && undec(x) && ctrlKeys.has(key(x)) && !moving.has(key(x))) moving.set(key(x), x); });
+  const out = [];
+  rows.forEach(x => {
+    if (moving.get(key(x)) === x) return; // あとで制御盤の次に入れる
+    out.push(x);
+    if (x.category === '制御盤' && undec(x) && moving.has(key(x))) { out.push(moving.get(key(x))); }
+  });
+  return out;
+}
 function mergeSum(all, notes){
   const key = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
   const of = src => all.filter(x => x.src === src);
@@ -1410,7 +1425,7 @@ function makeSheet(XLSX, rows, cols) {
 }
 // 帳票（Excel）を作る。proc.sheets があればシートを複数作る（{ name, filter: 行を選ぶ関数, columns: 省略時は proc.columns }）
 function sheetPlan(rows, proc) {
-  return proc.sheets ? proc.sheets.map(sh => ({ name: sh.name, cols: sh.columns || proc.columns, rows: sh.filter ? rows.filter(sh.filter) : rows }))
+  return proc.sheets ? proc.sheets.map(sh => { const r = sh.filter ? rows.filter(sh.filter) : rows; return { name: sh.name, cols: sh.columns || proc.columns, rows: sh.order ? sh.order(r) : r }; }) // order：シートだけの並べ方
     : [{ name: proc.outName, cols: proc.columns, rows }];
 }
 function buildWorkbook(XLSX, rows, proc) {
@@ -1496,7 +1511,7 @@ const PROCESSORS = {
       { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
       { key: 'category', label: 'カテゴリ' }, { key: 'state', label: '部材状態' }, { key: 'shipTo', label: '出荷先' }, { key: 'jit', label: 'JIT日', date: true }],
     outName: 'HRB集計',
-    sheets: [{ name: 'HRB集計' }, { name: 'HRB制御盤', filter: x => x.category === '制御盤' }, { name: 'HRB-ATC盤', filter: x => x.category === 'ATC盤' }], // 集計を一番左に（2026-10-13 ユーザー指示）
+    sheets: [{ name: 'HRB集計', order: sumOrder }, { name: 'HRB制御盤', filter: x => x.category === '制御盤' }, { name: 'HRB-ATC盤', filter: x => x.category === 'ATC盤' }], // 集計を一番左に（2026-10-13 ユーザー指示）
     noMarkNote: n => '',
     emptyMsg: '抽出できる行がありませんでした。HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 の元ファイルを取り込んでください。',
   },
