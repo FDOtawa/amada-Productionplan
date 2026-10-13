@@ -1216,6 +1216,43 @@ function extractTS(XLSX, wb){
   return { rows, excluded, noMark: [], prodYear: null, prodMonth: null };
 }
 
+// 「EGB 制御盤」：対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ小型（標準機）と (新)(旧)EG（小型機）を読む。A列の先頭「TS」を消し、D列の左3文字が EGB の行だけ。
+// 新旧の突き合わせは HG と同じ（両方にあれば(新)、片方だけならその行）。仕向は機種名に EXP・EX・CE のどれかがあれば EXP、無ければ DMS
+const EGB_PAIRS = () => [{ ...LARGE, NEW: '(新)ベンダー小型', OLD: '(旧)ベンダー小型', PREFIX: 'TS' }, { ...LARGE, NEW: '(新)EG', OLD: '(旧)EG', PREFIX: 'TS' }]; // LARGE はあとで定義されるため関数にする
+const isEGB = m => String(m).normalize('NFKC').toUpperCase().trim().startsWith('EGB');
+// EGB 全般（別盤を含む）：機種名の「EX」は「EXP」に書き直す（例 EGB4010E_EX → EGB4010E_EXP。2026-10-13 ユーザー指示）
+const egbModel = m => String(m).replace(/(?<![A-Za-zＡ-Ｚａ-ｚ])(EX|ＥＸ)(?![A-Za-zＡ-Ｚａ-ｚ])/g, 'EXP');
+const egbDest = m => /(?<![A-Z])(EXP|EX|CE)(?![A-Z])/.test(String(m).normalize('NFKC').toUpperCase()) ? 'EXP' : 'DMS';
+function validateEGBCtrl(XLSX, wb){ return EGB_PAIRS().flatMap(cfg => validateLarge(XLSX, wb, cfg)); }
+function extractEGBCtrl(XLSX, wb){
+  const runDate = new Date(), rows = [], excluded = [];
+  EGB_PAIRS().forEach(cfg => {
+    const nw = largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.NEW)], cfg), old = largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.OLD)], cfg);
+    const inNew = new Set(nw.map(x => x.serial));
+    [...nw, ...old.filter(x => !inNew.has(x.serial))].forEach(x => {
+      if (!isEGB(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EGB ではない' }); return; }
+      const dest = egbDest(x.model);
+      rows.push({ row: x.row, sheet: cfg.NEW, month: prodMonthLabel(x.monthRaw, runDate), model: egbModel(x.model), serial: x.serial, dest,
+        country: dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, jit: toDate(x.jitRaw) });
+    });
+  });
+  return { rows, excluded, noMark: rows.filter(x => !x.jit), prodYear: null, prodMonth: null };
+}
+// 客先名の表記（アプリ全般、2026-10-13 ユーザー指示）：全角の英字・数字・記号（（株）（有）のカッコなど）と全角スペースは半角に、
+// 全角カタカナは半角カタカナにする（濁点・半濁点は ﾞ ﾟ、長音 ー は ｰ）。漢字・ひらがなはそのまま
+const KANA_HALF = (() => { const f = 'ァアィイゥウェエォオカキクケコサシスセソタチッツテトナニヌネノハヒフヘホマミムメモャヤュユョヨラリルレロワヲンー・「」、。', h = 'ｧｱｨｲｩｳｪｴｫｵｶｷｸｹｺｻｼｽｾｿﾀﾁｯﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓｬﾔｭﾕｮﾖﾗﾘﾙﾚﾛﾜｦﾝｰ･｢｣､｡'; const m = {}; [...f].forEach((c, i) => m[c] = h[i]); return m; })();
+function hankakuName(t){
+  let out = '';
+  for (const ch of String(t)) {
+    const c = ch.codePointAt(0);
+    if (c >= 0xFF01 && c <= 0xFF5E) out += String.fromCharCode(c - 0xFEE0);       // 全角の英数字・記号 → 半角
+    else if (c === 0x3000) out += ' ';                                             // 全角スペース → 半角
+    else if (c >= 0x30A1 && c <= 0x30FC || '・「」、。'.includes(ch)) {             // 全角カタカナ → 半角（ガ → ｶﾞ など。ひらがな・漢字は触らない）
+      for (const d of ch.normalize('NFD')) out += d === '゙' ? 'ﾞ' : d === '゚' ? 'ﾟ' : (KANA_HALF[d] || d);
+    } else out += ch;
+  }
+  return out;
+}
 // 「HRB 集計」：取り込んだファイルの種類を見分ける（ツールステーション → 対比表 → 生産機資料 → KD梱包日程 の順に、各機種の定義チェックで判定）
 const SUM_KINDS = { ts: 'HRB ATC盤', large: 'HRB 大型', toki: 'HRB 土岐', kd: 'HRB KD' };
 function sumSheets(wb){ return wb.SheetNames.filter(n => wb.Sheets[n] && wb.Sheets[n]['!ref']); }
@@ -1344,8 +1381,8 @@ const COUNTRY = [
   [/ベトナム/, 'ベトナム'], [wordRe('VIET\\s*NAM'), 'ベトナム'], [/インドネシア/, 'インドネシア'], [wordRe('INDONESIA'), 'インドネシア'],
   [/マレーシア/, 'マレーシア'], [wordRe('MALAYSIA'), 'マレーシア'], [/フィリピン/, 'フィリピン'], [wordRe('PHILIPPINES'), 'フィリピン'],
   [/シンガポール/, 'シンガポール'], [wordRe('SINGAPORE'), 'シンガポール'], [/インド(?!ネシア)/, 'インド'], [wordRe('INDIA'), 'インド'],
-  [/カナダ/, 'カナダ'], [wordRe('CANADA'), 'カナダ'], [wordRe('ACL'), 'カナダ'], /* 【ACL】（AMADA CANADA LTD.）はカナダ（ユーザー確認） */ [/メキシコ/, 'メキシコ'], [wordRe('MEXICO'), 'メキシコ'], [/ブラジル/, 'ブラジル'], [wordRe('BRAZIL'), 'ブラジル'],
-  [/ドイツ/, 'ドイツ'], [wordRe('GERMANY'), 'ドイツ'], [/フランス/, 'フランス'], [wordRe('FRANCE'), 'フランス'], [/イタリア/, 'イタリア'], [wordRe('ITALY'), 'イタリア'],
+  [/カナダ/, 'カナダ'], [wordRe('CANADA'), 'カナダ'], [wordRe('ACL'), 'カナダ'], /* 【ACL】（AMADA CANADA LTD.）はカナダ（ユーザー確認） */ [/メキシコ/, 'メキシコ'], [wordRe('MEXICO'), 'メキシコ'], [/ブラジル/, 'ブラジル'], [wordRe('BRAZIL|BRASIL'), 'ブラジル'] /* BRASIL（Amada do Brasil）もブラジル（2026-10-13 ユーザー指定） */,
+  [/ドイツ/, 'ドイツ'], [wordRe('GERMANY'), 'ドイツ'], [/フランス/, 'フランス'], [wordRe('FRANCE'), 'フランス'], [/イタリア/, 'イタリア'], [wordRe('ITALY|ITALIA'), 'イタリア'] /* AMADA ITALIA もイタリア（2026-10-13 ユーザー指定） */,
   [/イギリス|英国/, 'イギリス'], [wordRe('U\\.?K\\.?|ENGLAND|BRITAIN|UNITED\\s*KINGDOM'), 'イギリス'],
   [/オーストラリア/, 'オーストラリア'], [wordRe('AUSTRALIA'), 'オーストラリア'], [/トルコ/, 'トルコ'], [wordRe('TURKEY'), 'トルコ'],
 ];
@@ -1507,6 +1544,18 @@ const MAX_FILES = 8; // 2026-10-13 ユーザー指示で4→6→8
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
 // allSheets: true ならファイル内のすべてのシートを読んで1つの表にまとめる
 const PROCESSORS = {
+  'EGB 制御盤': { // 2026-10-13：対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ小型（標準機）と (新)(旧)EG（小型機）から。新旧の突き合わせは HG と同じ
+    book: true,
+    sortKey: 'jit',
+    earliestYM: true,
+    validate: (wb) => validateEGBCtrl(XLSX, wb),
+    extract:  (wb) => extractEGBCtrl(XLSX, wb),
+    columns: [{ key: 'month', label: 'アマダ生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'メカシリアル' }, { key: 'dest', label: '仕向' },
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }],
+    outName: 'EGB制御盤',
+    noMarkNote: n => `J列（着手日）が空欄または日付でない行が${n}件あります。JIT日は空欄で出力します。`,
+    emptyMsg: '抽出できる行がありませんでした。(新)(旧)ﾍﾞﾝﾀﾞｰ小型・(新)(旧)EG の3行目以降のD列に EGB の機種名があるか確認してください。',
+  },
   'HRB 集計': { // 2026-10-13：HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 の元ファイル（最大6つ）を取り込み、合算する
     book: true, // ファイルごとに種類（生産機資料・KD梱包日程・対比表・ツールステーション）を見分けて、それぞれの処理で抜き出す
     sortKey: 'jit',
@@ -1891,6 +1940,7 @@ function run(){
     noMarkCount = all.filter(x => proc.columns.some(c => c.need && !colVal(c, x))).length;
   }
   if (proc.post) { const res = proc.post(all, notes); all.splice(0, all.length, ...res); }
+  all.forEach(x => { if (typeof x.customer === 'string') x.customer = hankakuName(x.customer); }); // 客先名は半角にそろえる（全機種共通）
   if (proc.sortKey) {
     const t = x => x[proc.sortKey] instanceof Date ? x[proc.sortKey].getTime() : Infinity; // 空欄や「未定」などは最後（元の順のまま）
     all.sort((a, b) => t(a) - t(b)); // 同じ日付は元の順のまま
