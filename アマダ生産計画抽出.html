@@ -1381,7 +1381,7 @@ function extractEGBSub(XLSX, wb){
       const shipTo = egbShipTo(panel, model, dest, kind, ym);
       const jit = isAESA ? ctrlJit : businessDaysBefore(ctrlJit, egbSubDays(panel, shipTo)); // AESA は JIT日＝制御盤JIT日＝J列
       rows.push({ row: x.row, sheet: x.src, month, model: (isAESA ? x.model : model) + `(${panel})`, serial: x.serial,
-        robot: panel === 'ATC盤' ? '' : (robot ? robot.serial : ''), dest, country, customer: x.customer, shipTo, jit, ctrlJit,
+        robot: panel === 'ATC盤' ? '' : (robot ? robot.serial : ''), dest, country, customer: isAESA ? 'AESA' : x.customer, shipTo, jit, ctrlJit, // AESA シートの客先名は「AESA」一択（2026-10-13 ユーザー指示）
         k: panel === 'LC盤' ? (K_OF[robot ? robot.type : egbRobotType(model)] || '') : '' });
     });
   };
