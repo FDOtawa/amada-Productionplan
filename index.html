@@ -1353,7 +1353,7 @@ function extractEGBSub(XLSX, wb){
   const makeRows = (x, robot, isAESA) => {
     const model = egbModel(x.model), form = egbForm(model), dest = egbDest(x.model), kind = egbKind(model);
     const month = prodMonthLabel(x.monthRaw, runDate), ym = labelYM(month), ctrlJit = toDate(x.jitRaw);
-    const country = dest === 'DMS' ? '日本' : (countryOf(x.customer) || (String(x.customer).normalize('NFKC').toUpperCase().trim() === 'AESA' ? '欧州' : '')); // 客先名が「AESA」だけなら欧州（2026-10-13 ユーザー指示）
+    const country = dest === 'DMS' ? '日本' : (countryOf(x.customer) || (isAESA || String(x.customer).normalize('NFKC').toUpperCase().trim() === 'AESA' ? '欧州' : '')); // AESA シートの行と、客先名が「AESA」だけの行は欧州（2026-10-13 ユーザー指示）
     (EGB_PANELS[form] || []).forEach(panel => {
       const shipTo = egbShipTo(panel, model, dest, kind, ym);
       const jit = isAESA ? ctrlJit : businessDaysBefore(ctrlJit, egbSubDays(panel, shipTo)); // AESA は JIT日＝制御盤JIT日＝J列
