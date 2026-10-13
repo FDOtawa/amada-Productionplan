@@ -99,7 +99,7 @@
   - 客先名が「引当解除 2026-」の行もそのまま出す（ユーザー指示）。
   - **客先名と JIT日の間に「種類」「着地」を追加**（2026-10-13 ユーザー指示。出力9列）：種類＝小型機／標準機（egbKind、上の見分け方）、着地＝**小型機は土岐、標準機は富士宮**（EGB_LANDING）。サンプル：小型機 98（4010・6013）／標準機 298（1303・6020・8025）。デスクトップに「EGB制御盤 AMD生産計画 2026.10.13 (1).xlsx」（9列版）を出力。
   - **AESA は EGB 制御盤から外す**（機種名か客先名に AESA がある行。ユーザー指示）。サンプルでは EGB6020AE_CE の2件（【AESA】AMADA ITALIA・TAVECCHIO）が除外 → 396件（除外3件）。
-  - 機種名の「(ARME)」の記載は不要なので消す（例 EGB1303ARE_DOM(ARME) → EGB1303ARE_DOM）。この機械は ARE として扱う（ユーザー指示）。EGB 制御盤の帳票でも同じ（ユーザーOK。egbModel で消す）。
+  - 機種名の「(ARME)」の記載は不要なので消す（例 EGB1303ARE_DOM(ARME) → EGB1303ARE_DOM）。この機械は ARE として扱う（ユーザー指示）。EGB 制御盤の帳票でも同じ（ユーザーOK。egbModel で消す）。**「_DOM」も消す**（ユーザー指示。EGB1303ARE_DOM(ARME) → EGB1303ARE。仕向は DMS）。
   - **EGB 全般（別盤も含む）：機種名の「EX」は「EXP」に書き直す**（egbModel。例 EGB4010E_EX → EGB4010E_EXP。ユーザー指示）。
   - 実装：PROCESSORS 'EGB 制御盤'（book、validateEGBCtrl・extractEGBCtrl、EGB_PAIRS は LARGE の後で定義されるので関数）。largeRows（PREFIX 'TS'）・validateLarge を共用。
   - 試し（20260919 の対比表を履歴から一時的に置いて試し、試し後に消した）：398件（(新)ﾍﾞﾝﾀﾞｰ小型 300＋(新)EG 98）、除外1件（HG8025C：EGB ではない）。DMS 201／EXP 197。EXP の国名の空欄13件（オセアニア、Amada do Brasil（→ 2026-10-13 **「BRASIL」もブラジル**と国名の表に追加。全機種共通の countryOf）、【AESA】AMADA ITALIA（→ **「ITALIA」もイタリア**と追加）、【AESA】TAVECCHIO( EX AITALIA)（→ 空欄のまま。ユーザー指示）、アジアパシフィック、【AESA】AMADA ITALIA・TAVECCHIO、オーバーシーズ、「引当解除 2026-」）。

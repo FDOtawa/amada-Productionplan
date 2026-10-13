@@ -1231,7 +1231,8 @@ const EGB_LANDING = { '小型機': '土岐', '標準機': '富士宮' };
 const isEGB = m => String(m).normalize('NFKC').toUpperCase().trim().startsWith('EGB');
 // EGB 全般（別盤を含む）：機種名の「EX」は「EXP」に書き直す（例 EGB4010E_EX → EGB4010E_EXP。2026-10-13 ユーザー指示）
 // 「(ARME)」の記載は不要なので消す（例 EGB1303ARE_DOM(ARME) → EGB1303ARE_DOM。ARE として扱う。2026-10-13 ユーザー指示）
-const egbModel = m => String(m).replace(/[（(]\s*ARME\s*[)）]/gi, '').replace(/(?<![A-Za-zＡ-Ｚａ-ｚ])(EX|ＥＸ)(?![A-Za-zＡ-Ｚａ-ｚ])/g, 'EXP');
+const egbModel = m => String(m).replace(/[（(]\s*ARME\s*[)）]/gi, '').replace(/[_＿]\s*DOM(?![A-Za-z])/gi, '') // 「_DOM」も消す（2026-10-13 ユーザー指示）
+  .replace(/(?<![A-Za-zＡ-Ｚａ-ｚ])(EX|ＥＸ)(?![A-Za-zＡ-Ｚａ-ｚ])/g, 'EXP');
 const egbDest = m => /(?<![A-Z])(EXP|EX|CE)(?![A-Z])/.test(String(m).normalize('NFKC').toUpperCase()) ? 'EXP' : 'DMS';
 function validateEGBCtrl(XLSX, wb){ return EGB_PAIRS().flatMap(cfg => validateLarge(XLSX, wb, cfg)); }
 function extractEGBCtrl(XLSX, wb){
