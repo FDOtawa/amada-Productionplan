@@ -1267,12 +1267,18 @@ function mergeSum(all, notes){
     if (m) usedKd.add(k);
     return { ...x, category: '制御盤', state: 'FD南陵', jit: m ? m.jit : x.jit, from: m ? '土岐＋KD' : '土岐' };
   });
+  // ATC盤の JIT日：ツールステーションに日付があればそれを使う。無い（未定）ときは、制御盤の JIT日（KD と重なれば KD の日付）から
+  // HRB 土岐と同じきまり（3週間前、日・月・祝日は前の日へ）で決める（2026-10-13 ユーザー指示）
+  const ctrlJit = new Map([...ctrl, ...kd.filter(x => !usedKd.has(key(x))), ...large].filter(x => key(x) && x.jit instanceof Date).map(x => [key(x), x.jit]));
+  const fromCtrl = k => ctrlJit.has(k) ? atcJit(ctrlJit.get(k)) : null;
   const atc = toki.filter(x => /ATC/.test(x.model.normalize('NFKC').toUpperCase())).map(x => {
     const k = key(x), m = k && tsMap.get(k);
     if (m) usedTs.add(k);
-    return { ...x, category: 'ATC盤', state: 'マイクロP', shipTo: '土岐', jit: m ? m.jit : x.jitAtc, from: m ? '土岐＋ツールステーション' : '土岐' };
+    const jit = m && m.jit instanceof Date ? m.jit : (fromCtrl(k) || x.jitAtc);
+    return { ...x, category: 'ATC盤', state: 'マイクロP', shipTo: '土岐', jit, from: m ? '土岐＋ツールステーション' : '土岐' };
   });
-  const kdOnly = kd.filter(x => !usedKd.has(key(x))), tsOnly = ts.filter(x => !usedTs.has(key(x)));
+  const kdOnly = kd.filter(x => !usedKd.has(key(x)));
+  const tsOnly = ts.filter(x => !usedTs.has(key(x))).map(x => x.jit instanceof Date || !fromCtrl(key(x)) ? x : { ...x, jit: fromCtrl(key(x)) });
   const out = [...ctrl, ...kdOnly, ...large, ...atc, ...tsOnly];
   const kinds = [['toki', toki], ['kd', kd], ['large', large], ['ts', ts]].map(([k, a]) => `${SUM_KINDS[k]} ${a.length}件`).join('、');
   notes.push(['info', `取り込んだ内容：${kinds}`]);
