@@ -262,6 +262,7 @@
 - git push の許可：.claude/settings.local.json に "Bash(git push)" / "Bash(git push *)" を追加済み（ユーザー指示。このファイルは .gitignore で公開リポジトリから除外）。2026-10-09 に初回 push 完了（41ファイル）。
 
 ## 実行環境メモ
+- **製作中のテスト出力（試しの帳票）の保存先は C:\Users\0029\Desktop\新生産計画**（2026-10-14 ユーザー指示。それまではデスクトップ直下）。同じ名前があれば (1)(2)… を付ける。
 - 元はclaude.aiのArtifactとして公開（https://claude.ai/artifact/QtZ97JpQLMa7WV2ELPri2e）。保存は window.claude.use('downloads') を使い、無い環境では <a download> で保存する（両対応済み）。
 - デスクトップ配布用は、xlsxライブラリを<script>内に埋め込み、ファビコン（icon.ico相当）を付けたオフライン版HTML（アマダ生産計画抽出.html）を作る。
 - ユーザーはWindowsのデスクトップにショートカット（icon.icoを設定）を置いて起動している。修正後はオフライン版を作り直して上書きしてもらう。
