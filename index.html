@@ -1219,6 +1219,15 @@ function extractTS(XLSX, wb){
 // 「EGB 制御盤」：対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ小型（標準機）と (新)(旧)EG（小型機）を読む。A列の先頭「TS」を消し、D列の左3文字が EGB の行だけ。
 // 新旧の突き合わせは HG と同じ（両方にあれば(新)、片方だけならその行）。仕向は機種名に EXP・EX・CE のどれかがあれば EXP、無ければ DMS
 const EGB_PAIRS = () => [{ ...LARGE, NEW: '(新)ベンダー小型', OLD: '(旧)ベンダー小型', PREFIX: 'TS' }, { ...LARGE, NEW: '(新)EG', OLD: '(旧)EG', PREFIX: 'TS' }]; // LARGE はあとで定義されるため関数にする
+// EGB の種類（ユーザー説明）：標準機＝EGB13〇〇・EGB8〇〇〇・EGB6＊＊＊（＊に2）、小型機＝EGB4〇〇〇・EGB6＊＊＊（＊に1）。着地は小型機→土岐、標準機→富士宮
+function egbKind(m){
+  const d = (String(m).normalize('NFKC').toUpperCase().match(/^EGB(\d{4})/) || [])[1];
+  if (!d) return '';
+  if (d.startsWith('13') || d[0] === '8' || (d[0] === '6' && d.slice(1).includes('2'))) return '標準機';
+  if (d[0] === '4' || (d[0] === '6' && d.slice(1).includes('1'))) return '小型機';
+  return '';
+}
+const EGB_LANDING = { '小型機': '土岐', '標準機': '富士宮' };
 const isEGB = m => String(m).normalize('NFKC').toUpperCase().trim().startsWith('EGB');
 // EGB 全般（別盤を含む）：機種名の「EX」は「EXP」に書き直す（例 EGB4010E_EX → EGB4010E_EXP。2026-10-13 ユーザー指示）
 const egbModel = m => String(m).replace(/(?<![A-Za-zＡ-Ｚａ-ｚ])(EX|ＥＸ)(?![A-Za-zＡ-Ｚａ-ｚ])/g, 'EXP');
@@ -1234,7 +1243,7 @@ function extractEGBCtrl(XLSX, wb){
       if (/AESA/.test((x.model + ' ' + x.customer).normalize('NFKC').toUpperCase())) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: 'AESA（制御盤は AESA が自社で作る）' }); return; } // AESA は EGB 制御盤から外す（2026-10-13 ユーザー指示）
       const dest = egbDest(x.model);
       rows.push({ row: x.row, sheet: cfg.NEW, month: prodMonthLabel(x.monthRaw, runDate), model: egbModel(x.model), serial: x.serial, dest,
-        country: dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, jit: toDate(x.jitRaw) });
+        country: dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, kind: egbKind(x.model), landing: EGB_LANDING[egbKind(x.model)] || '', jit: toDate(x.jitRaw) });
     });
   });
   return { rows, excluded, noMark: rows.filter(x => !x.jit), prodYear: null, prodMonth: null };
@@ -1552,7 +1561,9 @@ const PROCESSORS = {
     validate: (wb) => validateEGBCtrl(XLSX, wb),
     extract:  (wb) => extractEGBCtrl(XLSX, wb),
     columns: [{ key: 'month', label: 'アマダ生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'メカシリアル' }, { key: 'dest', label: '仕向' },
-      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }],
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
+      { key: 'kind', label: '種類' }, { key: 'landing', label: '着地' }, // 2026-10-13 追加：種類＝小型機／標準機、着地＝小型機は土岐・標準機は富士宮
+      { key: 'jit', label: 'JIT日', date: true, need: true }],
     outName: 'EGB制御盤',
     noMarkNote: n => `J列（着手日）が空欄または日付でない行が${n}件あります。JIT日は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。(新)(旧)ﾍﾞﾝﾀﾞｰ小型・(新)(旧)EG の3行目以降のD列に EGB の機種名があるか確認してください。',
