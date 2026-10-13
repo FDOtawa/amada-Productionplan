@@ -2135,7 +2135,7 @@ const MACHINES = [
   ['HG','複合機','レーザ','AE','発振器','小板発振器','FLW','']
 ];
 // 集計の下層の機種（2026-10-13 ユーザー指示）：ボタンを全角1文字分右に置き、左に「└」を付けて下層であることを示す
-const SUB_MACHINES = new Set(['HRB 土岐', 'HRB KD', 'HRB 大型', 'HRB ATC盤']);
+const SUB_MACHINES = new Set(['EGB 制御盤', 'EGB 別盤', 'HRB 土岐', 'HRB KD', 'HRB 大型', 'HRB ATC盤']); // EGB 集計の下層も同じ（2026-10-13）
 (function renderMachines(){
   const g = $('mgrid');
   MACHINES.forEach(col => {
