@@ -1208,6 +1208,60 @@ function extractTS(XLSX, wb){
   return { rows, excluded, noMark: [], prodYear: null, prodMonth: null };
 }
 
+// 「HRB 集計」：取り込んだファイルの種類を見分ける（ツールステーション → 対比表 → 生産機資料 → KD梱包日程 の順に、各機種の定義チェックで判定）
+const SUM_KINDS = { ts: 'HRB ATC盤', large: 'HRB 大型', toki: 'HRB 土岐', kd: 'HRB KD' };
+function sumSheets(wb){ return wb.SheetNames.filter(n => wb.Sheets[n] && wb.Sheets[n]['!ref']); }
+function sumKind(XLSX, wb){
+  if (tsSheet(XLSX, wb)) return 'ts';
+  if (findSheet(wb, LARGE.NEW) && findSheet(wb, LARGE.OLD) && !validateLarge(XLSX, wb).length) return 'large';
+  const sh = sumSheets(wb);
+  if (sh.length && sh.some(n => !validateToki(XLSX, wb.Sheets[n]).length)) return 'toki';
+  if (sh.length && sh.some(n => !validateHRBKD(XLSX, wb.Sheets[n]).length)) return 'kd';
+  return '';
+}
+// それぞれの処理で抜き出し、カテゴリ・部材状態・出荷先をそろえる（HRB 土岐の行は制御盤とATC盤の両方の元になる）
+function extractSum(XLSX, wb){
+  const kind = sumKind(XLSX, wb), rows = [], excluded = [];
+  const add = (res, f) => { if (!res || res.error) return; res.rows.forEach(x => rows.push(f(x))); excluded.push(...(res.excluded || [])); };
+  if (kind === 'ts') add(extractTS(XLSX, wb), x => ({ ...x, src: 'ts', category: 'ATC盤', state: 'マイクロP', shipTo: '土岐' }));
+  if (kind === 'large') add(extractLarge(XLSX, wb), x => ({ ...x, src: 'large', category: '制御盤', state: 'FD南陵', shipTo: '富士宮' }));
+  if (kind === 'toki') sumSheets(wb).filter(n => !validateToki(XLSX, wb.Sheets[n]).length).forEach(n => add(extractToki(XLSX, wb.Sheets[n]), x => ({ ...x, sheet: n, src: 'toki' })));
+  if (kind === 'kd') sumSheets(wb).filter(n => !validateHRBKD(XLSX, wb.Sheets[n]).length).forEach(n =>
+    add(extractJIT(XLSX, wb.Sheets[n], { prefix: 'HRB', exclude: 'AESA', year: null, month: null }), x => ({ ...x, sheet: n, src: 'kd',
+      model: addExp(x.model), dest: 'EXP', country: '米国', customer: 'AAI', category: '制御盤', state: 'FD南陵', shipTo: 'KD' })));
+  return { rows, excluded, noMark: [], prodYear: null, prodMonth: null };
+}
+// 突き合わせ（2026-10-13 ユーザー指示）
+// 制御盤＝土岐（AESA 以外）＋KD＋大型。土岐とKDに同じシリアルがあれば、土岐の行の JIT日（納期）を KD の日付にする。
+// ATC盤＝土岐の ATC（AESA も含む。JIT日は3週間前）＋ツールステーション。同じシリアルがあれば、土岐の行の JIT日をツールステーションの日付にする。
+// 片方にしか無い行はそのまま出力する。
+function mergeSum(all, notes){
+  const key = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
+  const of = src => all.filter(x => x.src === src);
+  const toki = of('toki'), kd = of('kd'), large = of('large'), ts = of('ts');
+  const kdMap = new Map(kd.filter(key).map(x => [key(x), x])), tsMap = new Map(ts.filter(key).map(x => [key(x), x]));
+  const usedKd = new Set(), usedTs = new Set();
+  const ctrl = toki.filter(x => !x.aesa).map(x => {
+    const k = key(x), m = k && kdMap.get(k);
+    if (m) usedKd.add(k);
+    return { ...x, category: '制御盤', state: 'FD南陵', jit: m ? m.jit : x.jit, from: m ? '土岐＋KD' : '土岐' };
+  });
+  const atc = toki.filter(x => /ATC/.test(x.model.normalize('NFKC').toUpperCase())).map(x => {
+    const k = key(x), m = k && tsMap.get(k);
+    if (m) usedTs.add(k);
+    return { ...x, category: 'ATC盤', state: 'マイクロP', shipTo: '土岐', jit: m ? m.jit : x.jitAtc, from: m ? '土岐＋ツールステーション' : '土岐' };
+  });
+  const kdOnly = kd.filter(x => !usedKd.has(key(x))), tsOnly = ts.filter(x => !usedTs.has(key(x)));
+  const out = [...ctrl, ...kdOnly, ...large, ...atc, ...tsOnly];
+  const kinds = [['toki', toki], ['kd', kd], ['large', large], ['ts', ts]].map(([k, a]) => `${SUM_KINDS[k]} ${a.length}件`).join('、');
+  notes.push(['info', `取り込んだ内容：${kinds}`]);
+  if (usedKd.size) notes.push(['info', `土岐とKDで同じシリアルが${usedKd.size}件あり、JIT日はKDの日付を使いました。`]);
+  if (usedTs.size) notes.push(['info', `土岐のATC盤とツールステーションで同じシリアルが${usedTs.size}件あり、JIT日はツールステーションの日付を使いました。`]);
+  const missing = Object.keys(SUM_KINDS).filter(k => !of(k).length).map(k => SUM_KINDS[k]);
+  if (missing.length) notes.push(['warn', `取り込まれていない元ファイル：${missing.join('、')}（その分は集計に入っていません）`]);
+  return out;
+}
+
 // Excelの列幅の単位（半角1文字=1）で文字の幅を見積もる。印刷時（改ページプレビューの自動調整）でも切れないよう、半角・半角カナ=1.25、全角=2.4 で見積もる
 function textWidth(v) {
   let w = 0;
@@ -1424,6 +1478,22 @@ const MAX_FILES = 6; // 2026-10-13 ユーザー指示で4→6
 // columns: 画面とExcelに出す列（date=日付列、need=空欄なら色付き行にする）、outName: シート名・保存名に使う名前
 // allSheets: true ならファイル内のすべてのシートを読んで1つの表にまとめる
 const PROCESSORS = {
+  'HRB 集計': { // 2026-10-13：HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 の元ファイル（最大6つ）を取り込み、合算する
+    book: true, // ファイルごとに種類（生産機資料・KD梱包日程・対比表・ツールステーション）を見分けて、それぞれの処理で抜き出す
+    sortKey: 'jit',
+    earliestYM: true,
+    groupBy: x => x.src, // 同じ種類のファイルが複数あるときだけ、新しいファイルを採用する
+    validate: (wb) => sumKind(XLSX, wb) ? [] : ['項目の定義：HRB 集計で使うファイル（ファイン電子用生産機資料・【土岐】KD梱包日程・生産計画対比表・HRBツールステーション発送計画）ではありません。'],
+    extract:  (wb) => extractSum(XLSX, wb),
+    post: (all, notes) => mergeSum(all, notes),
+    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
+      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
+      { key: 'category', label: 'カテゴリ' }, { key: 'state', label: '部材状態' }, { key: 'shipTo', label: '出荷先' }, { key: 'jit', label: 'JIT日', date: true }],
+    outName: 'HRB集計',
+    sheets: [{ name: 'HRB集計' }, { name: 'HRB制御盤', filter: x => x.category === '制御盤' }, { name: 'HRB-ATC盤', filter: x => x.category === 'ATC盤' }], // 集計を一番左に（2026-10-13 ユーザー指示）
+    noMarkNote: n => '',
+    emptyMsg: '抽出できる行がありませんでした。HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 の元ファイルを取り込んでください。',
+  },
   'HRB 土岐': { // 2026-10-10：「ファイン電子用生産機資料-(日付).xlsx」から。F列の先頭3文字が HRB・SRB の行だけ
     allSheets: true,
     sortKey: 'jit', // 2つのシートとも JIT日の早い順。日付でない（未定）行は最後に元の表の順で
@@ -1770,7 +1840,7 @@ function run(){
   // 同じシリアルが複数のファイルにあるときは、ファイル名の日付が新しいファイルの行を採用（全機種共通）
   if (files.length > 1) {
     const dateOf = files.map(f => fileDateKey(f.name));
-    const serialKey = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
+    const serialKey = x => { const k = String(x.serial || '').normalize('NFKC').trim().toUpperCase(); return k && proc.groupBy ? proc.groupBy(x) + '|' + k : k; }; // HRB 集計は元ファイルの種類ごとに比べる
     const fileSets = {};
     all.forEach(x => { const k = serialKey(x); if (k) (fileSets[k] = fileSets[k] || new Set()).add(x.fileNo); });
     const winner = {}, conflicts = [];
@@ -1791,6 +1861,7 @@ function run(){
     if (replaced) notes.push(['info', `${replaced}件のシリアルが複数のファイルにあったため、ファイル名の日付が新しいファイルの内容を採用しました。`]);
     noMarkCount = all.filter(x => proc.columns.some(c => c.need && !colVal(c, x))).length;
   }
+  if (proc.post) { const res = proc.post(all, notes); all.splice(0, all.length, ...res); }
   if (proc.sortKey) {
     const t = x => x[proc.sortKey] instanceof Date ? x[proc.sortKey].getTime() : Infinity; // 空欄や「未定」などは最後（元の順のまま）
     all.sort((a, b) => t(a) - t(b)); // 同じ日付は元の順のまま
