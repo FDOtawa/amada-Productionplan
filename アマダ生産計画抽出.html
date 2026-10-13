@@ -1482,27 +1482,33 @@ function extractEGBSub(XLSX, wb){
   return { rows, excluded, noMark: rows.filter(x => !x.jit), prodYear: null, prodMonth: null };
 }
 
+// 機種の列の固定の値（value）を行の値として取り出す（集計で下層の機種の設定をそのまま使うため）
+const fixedVals = cols => Object.fromEntries((cols || []).filter(c => c.value !== undefined).map(c => [c.key, c.value]));
 // 「HRB 集計」：取り込んだファイルの種類を見分ける（ツールステーション → 対比表 → 生産機資料 → KD梱包日程 の順に、各機種の定義チェックで判定）
 const SUM_KINDS = { ts: 'HRB ATC盤', large: 'HRB 大型', toki: 'HRB 土岐', kd: 'HRB KD' };
 function sumSheets(wb){ return wb.SheetNames.filter(n => wb.Sheets[n] && wb.Sheets[n]['!ref']); }
 function sumKind(XLSX, wb){
-  if (tsSheet(XLSX, wb)) return 'ts';
-  if (findSheet(wb, LARGE.NEW) && findSheet(wb, LARGE.OLD) && !validateLarge(XLSX, wb).length) return 'large';
+  const P = PROCESSORS;
+  if (tsSheet(XLSX, wb) && !P['HRB ATC盤'].validate(wb).length) return 'ts';
+  if (findSheet(wb, LARGE.NEW) && findSheet(wb, LARGE.OLD) && !P['HRB 大型'].validate(wb).length) return 'large';
   const sh = sumSheets(wb);
-  if (sh.length && sh.some(n => !validateToki(XLSX, wb.Sheets[n]).length)) return 'toki';
-  if (sh.length && sh.some(n => !validateHRBKD(XLSX, wb.Sheets[n]).length)) return 'kd';
+  if (sh.length && sh.some(n => !P['HRB 土岐'].validate(wb.Sheets[n]).length)) return 'toki';
+  if (sh.length && sh.some(n => !P['HRB KD'].validate(wb.Sheets[n]).length)) return 'kd';
   return '';
 }
 // それぞれの処理で抜き出し、カテゴリ・部材状態・出荷先をそろえる（HRB 土岐の行は制御盤とATC盤の両方の元になる）
 function extractSum(XLSX, wb){
   const kind = sumKind(XLSX, wb), rows = [], excluded = [];
   const add = (res, f) => { if (!res || res.error) return; res.rows.forEach(x => rows.push(f(x))); excluded.push(...(res.excluded || [])); };
-  if (kind === 'ts') add(extractTS(XLSX, wb), x => ({ ...x, src: 'ts', category: 'ATC盤', state: 'マイクロP', shipTo: '土岐' }));
-  if (kind === 'large') add(extractLarge(XLSX, wb), x => ({ ...x, src: 'large', category: '制御盤', state: 'FD南陵', shipTo: '富士宮' }));
-  if (kind === 'toki') sumSheets(wb).filter(n => !validateToki(XLSX, wb.Sheets[n]).length).forEach(n => add(extractToki(XLSX, wb.Sheets[n]), x => ({ ...x, sheet: n, src: 'toki' })));
-  if (kind === 'kd') sumSheets(wb).filter(n => !validateHRBKD(XLSX, wb.Sheets[n]).length).forEach(n =>
-    add(extractJIT(XLSX, wb.Sheets[n], { prefix: 'HRB', exclude: 'AESA', year: null, month: null }), x => ({ ...x, sheet: n, src: 'kd',
-      model: addExp(x.model), dest: 'EXP', country: '米国', customer: 'AAI', category: '制御盤', state: 'FD南陵', shipTo: 'KD' })));
+  // 2026-10-14 ユーザー指示：下層の機種（HRB 土岐・KD・大型・ATC盤）を直したら HRB 集計にも自動で反映させる
+  // → 抽出も固定の値（カテゴリ・部材状態・出荷先など）も、下層の機種の設定（PROCESSORS）をその場で使う
+  const P = PROCESSORS;
+  if (kind === 'ts') add(P['HRB ATC盤'].extract(wb), x => ({ ...x, ...fixedVals(P['HRB ATC盤'].columns), src: 'ts' }));
+  if (kind === 'large') add(P['HRB 大型'].extract(wb), x => ({ ...x, ...fixedVals(P['HRB 大型'].columns), src: 'large' }));
+  if (kind === 'toki') sumSheets(wb).filter(n => !P['HRB 土岐'].validate(wb.Sheets[n]).length).forEach(n => add(P['HRB 土岐'].extract(wb.Sheets[n]), x => ({ ...x, sheet: n, src: 'toki' })));
+  if (kind === 'kd') sumSheets(wb).filter(n => !P['HRB KD'].validate(wb.Sheets[n]).length).forEach(n =>
+    add(P['HRB KD'].extract(wb.Sheets[n]), x => { const f = fixedVals(P['HRB KD'].columns);
+      return { ...x, ...f, sheet: n, src: 'kd', model: addExp(x.model), country: x.country || countryOf(f.customer || '') }; })); // KD は客先 AAI → 国名 米国
   return { rows, excluded, noMark: [], prodYear: null, prodMonth: null };
 }
 // 突き合わせ（2026-10-13 ユーザー指示）
@@ -1533,7 +1539,7 @@ function mergeSum(all, notes){
   const ctrl = toki.filter(x => !x.aesa).map(x => {
     const k = key(x), m = k && kdMap.get(k);
     if (m) usedKd.add(k);
-    return { ...x, category: '制御盤', state: 'FD南陵', jit: m ? m.jit : x.jit, from: m ? '土岐＋KD' : '土岐' };
+    return { ...x, ...fixedVals((PROCESSORS['HRB 土岐'].sheets || [])[0]?.columns || PROCESSORS['HRB 土岐'].columns), jit: m ? m.jit : x.jit, from: m ? '土岐＋KD' : '土岐' }; // 固定の値は HRB 土岐（制御盤シート）の設定
   });
   // ATC盤の JIT日：ツールステーションに日付があればそれを使う。無い（未定）ときは、制御盤の JIT日（KD と重なれば KD の日付）から
   // HRB 土岐と同じきまり（3週間前、日・月・祝日は前の日へ）で決める（2026-10-13 ユーザー指示）
@@ -1543,7 +1549,7 @@ function mergeSum(all, notes){
     const k = key(x), m = k && tsMap.get(k);
     if (m) usedTs.add(k);
     const jit = m && m.jit instanceof Date ? m.jit : (fromCtrl(k) || x.jitAtc);
-    return { ...x, category: 'ATC盤', state: 'マイクロP', shipTo: '土岐', jit, from: m ? '土岐＋ツールステーション' : '土岐' };
+    return { ...x, ...fixedVals((PROCESSORS['HRB 土岐'].sheets || [])[1]?.columns), jit, from: m ? '土岐＋ツールステーション' : '土岐' }; // 固定の値は HRB 土岐（HRB-ATC盤シート）の設定
   });
   const kdOnly = kd.filter(x => !usedKd.has(key(x)));
   const tsOnly = ts.filter(x => !usedTs.has(key(x))).map(x => x.jit instanceof Date || !fromCtrl(key(x)) ? x : { ...x, jit: fromCtrl(key(x)) });
@@ -1785,12 +1791,14 @@ const PROCESSORS = {
     book: true,
     sortKey: 'jit',
     earliestYM: true,
-    validate: (wb) => [...validateEGBCtrl(XLSX, wb), ...validateEGBSub(XLSX, wb)],
-    extract:  (wb) => { const a = extractEGBCtrl(XLSX, wb), b = extractEGBSub(XLSX, wb);
+    // 2026-10-14 ユーザー指示：EGB 制御盤・EGB 別盤を直したら EGB 集計にも自動で反映させる → 下層の機種の設定をその場で呼び出す
+    validate: (wb) => [...PROCESSORS['EGB 制御盤'].validate(wb), ...PROCESSORS['EGB 別盤'].validate(wb)],
+    extract:  (wb) => { const a = PROCESSORS['EGB 制御盤'].extract(wb), b = PROCESSORS['EGB 別盤'].extract(wb);
       return { rows: [...a.rows.map(x => ({ ...x, egb: 'ctrl' })), ...b.rows.map(x => ({ ...x, egb: 'sub' }))], excluded: a.excluded, noMark: [...a.noMark, ...b.noMark], prodYear: null, prodMonth: null }; },
-    columns: null, // 下で EGB 制御盤の列を入れる
+    get columns(){ return PROCESSORS['EGB 制御盤'].columns; },
     outName: 'EGB集計',
-    sheets: [{ name: 'EGB制御盤', filter: x => x.egb === 'ctrl', columns: null }, { name: 'EGB別盤', filter: x => x.egb === 'sub', columns: null, rowFill: x => egbSubFill(x) }],
+    sheets: [{ get name(){ return PROCESSORS['EGB 制御盤'].outName; }, filter: x => x.egb === 'ctrl', get columns(){ return PROCESSORS['EGB 制御盤'].columns; }, get rowFill(){ return PROCESSORS['EGB 制御盤'].rowFill; } },
+             { get name(){ return PROCESSORS['EGB 別盤'].outName; }, filter: x => x.egb === 'sub', get columns(){ return PROCESSORS['EGB 別盤'].columns; }, get rowFill(){ return PROCESSORS['EGB 別盤'].rowFill; } }],
     noMarkNote: n => `JIT日が空欄の行が${n}件あります（着手日が空欄、またはロボットだけの別盤の行）。JIT日は空欄で出力します。`,
     emptyMsg: '抽出できる行がありませんでした。対比表を取り込んでください。',
   },
@@ -1830,9 +1838,8 @@ const PROCESSORS = {
     validate: (wb) => sumKind(XLSX, wb) ? [] : ['項目の定義：HRB 集計で使うファイル（ファイン電子用生産機資料・【土岐】KD梱包日程・生産計画対比表・HRBツールステーション発送計画）ではありません。'],
     extract:  (wb) => extractSum(XLSX, wb),
     post: (all, notes) => mergeSum(all, notes),
-    columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, { key: 'dest', label: '仕向' },
-      { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
-      { key: 'category', label: 'カテゴリ' }, { key: 'state', label: '部材状態' }, { key: 'shipTo', label: '出荷先' }, { key: 'jit', label: 'JIT日', date: true }],
+    // 列は HRB 土岐の列をそのまま使う（固定の値の列は、行ごとの値を出すようにする）。HRB 土岐の列を直すと HRB 集計にも反映される
+    get columns(){ return PROCESSORS['HRB 土岐'].columns.map(c => { const { value, ...rest } = c; return rest; }); },
     outName: 'HRB集計',
     sheets: [{ name: 'HRB集計', order: sumOrder }, { name: 'HRB制御盤', filter: x => x.category === '制御盤' }, { name: 'HRB-ATC盤', filter: x => x.category === 'ATC盤' }], // 集計を一番左に（2026-10-13 ユーザー指示）
     noMarkNote: n => '',
@@ -1928,10 +1935,6 @@ const PROCESSORS = {
     emptyMsg: '抽出できる行がありませんでした。(新)(旧)ﾍﾞﾝﾀﾞｰ中型の3行目以降のA列にシリアルがあるか確認してください。',
   },
 };
-// EGB 集計の列は、EGB 制御盤・EGB 別盤の列をそのまま使う
-PROCESSORS['EGB 集計'].columns = PROCESSORS['EGB 制御盤'].columns;
-PROCESSORS['EGB 集計'].sheets[0].columns = PROCESSORS['EGB 制御盤'].columns;
-PROCESSORS['EGB 集計'].sheets[1].columns = PROCESSORS['EGB 別盤'].columns;
 // 機種が読むシート（allSheets の機種は空のシートを除くすべて）
 function sheetsOf(f, proc){
   if (proc && proc.book) return [null]; // null＝ファイル（ブック）全体を渡す
