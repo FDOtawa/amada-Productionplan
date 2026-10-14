@@ -3,4 +3,4 @@
 Dim sh, fso
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
-sh.Run "wscript.exe """ & fso.BuildPath(fso.BuildPath(fso.GetParentFolderName(WScript.ScriptFullName), "プログラムファイル"), "アマダ生産管理システムを開く.vbs") & """", 1, False
+sh.Run "wscript.exe """ & fso.BuildPath(fso.BuildPath(fso.GetParentFolderName(WScript.ScriptFullName), "プログラムファイル"), "生産管理システムを開く.vbs") & """", 1, False

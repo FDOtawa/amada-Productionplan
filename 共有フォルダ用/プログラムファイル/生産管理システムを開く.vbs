@@ -1,9 +1,9 @@
-' ƒAƒ}ƒ_¶YŠÇ—ƒVƒXƒeƒ€‚ğŠJ‚­i‹N“®—pj
+' ¶YŠÇ—ƒVƒXƒeƒ€‚ğŠJ‚­i‹N“®—pj
 ' ‹¤—LƒtƒHƒ‹ƒ_‚ÌÅV”Å‚ÌƒAƒvƒŠ‚ğA©•ª‚Ì PCi%LOCALAPPDATA%\AmadaPlanj‚ÉƒRƒs[‚µ‚Ä‚©‚ç Edge ‚ÅŠJ‚«‚Ü‚·B
 ' ‹¤—LƒtƒHƒ‹ƒ_‚©‚ç’¼ÚŠJ‚­‚ÆAEdge ‚ª•Û‘¶æƒtƒHƒ‹ƒ_‚Ì‘I‘ğ‚ğó‚¯•t‚¯‚È‚¢‚±‚Æ‚ª‚ ‚é‚½‚ßi2026-10-14jB
-' ƒAƒvƒŠi‚ÆƒAƒCƒRƒ“j‚ğV‚µ‚­‚·‚é‚Æ‚«‚ÍA‚±‚ÌƒtƒHƒ‹ƒ_‚ÌuƒAƒ}ƒ_¶YŠÇ—ƒVƒXƒeƒ€.htmlvuicon.icov‚ğ’u‚«Š·‚¦‚é‚¾‚¯‚ÅAŸ‚Ì‹N“®‚©‚ç‘Sˆõ‚ªV‚µ‚¢”Å‚É‚È‚è‚Ü‚·B
+' ƒAƒvƒŠi‚ÆƒAƒCƒRƒ“j‚ğV‚µ‚­‚·‚é‚Æ‚«‚ÍA‚±‚ÌƒtƒHƒ‹ƒ_‚Ìu¶YŠÇ—ƒVƒXƒeƒ€.htmlvuicon.icov‚ğ’u‚«Š·‚¦‚é‚¾‚¯‚ÅAŸ‚Ì‹N“®‚©‚ç‘Sˆõ‚ªV‚µ‚¢”Å‚É‚È‚è‚Ü‚·B
 Option Explicit
-Const APP = "ƒAƒ}ƒ_¶YŠÇ—ƒVƒXƒeƒ€", OLDAPP = "ƒAƒ}ƒ_¶YŒv‰æ’Šo"
+Const APP = "¶YŠÇ—ƒVƒXƒeƒ€", OLDAPP = "ƒAƒ}ƒ_¶YŒv‰æ’Šo", OLDAPP2 = "ƒAƒ}ƒ_¶YŠÇ—ƒVƒXƒeƒ€" ' 2026-10-14F–¼‘O‚ğu¶YŠÇ—ƒVƒXƒeƒ€v‚É
 Dim sh, fso, srcDir, src, ico, dstDir, dst, ok
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
@@ -23,6 +23,8 @@ If fso.FileExists(src) Then
   Err.Clear
   If fso.FileExists(fso.BuildPath(dstDir, OLDAPP & ".html")) Then fso.DeleteFile fso.BuildPath(dstDir, OLDAPP & ".html"), True ' –¼‘O‚ğ•Ï‚¦‚é‘O‚ÌƒRƒs[‚ÍÁ‚·
   Err.Clear
+  If fso.FileExists(fso.BuildPath(dstDir, OLDAPP2 & ".html")) Then fso.DeleteFile fso.BuildPath(dstDir, OLDAPP2 & ".html"), True
+  Err.Clear
 End If
 On Error GoTo 0
 If Not fso.FileExists(dst) Then
@@ -33,7 +35,7 @@ If Not ok Then MsgBox "‹¤—LƒtƒHƒ‹ƒ_‚É“ü‚ê‚È‚©‚Á‚½‚½‚ßA‚±‚Ì PC ‚É‘O‰ñƒRƒs[‚µ‚½”
 ' ƒfƒXƒNƒgƒbƒv‚ÌƒVƒ‡[ƒgƒJƒbƒg‚ğ‚»‚ë‚¦‚éi2026-10-14j
 ' EƒAƒCƒRƒ“F‹¤—LƒtƒHƒ‹ƒ_‚Ì icon.ico ‚ğ©•ª‚Ì PC ‚ÉƒRƒs[‚µ‚½‚à‚Ìi‹¤—L‚ÌƒAƒCƒRƒ“‚ğ’¼Úw‚·‚Æ Windows ‚ª“Ç‚ß‚¸”’‚¢Œ`‚É‚È‚é‚½‚ßj
 ' EŠJ‚­‚à‚ÌF‚±‚Ì‹N“®—pƒXƒNƒŠƒvƒgi’u‚«êŠ‚â–¼‘O‚ğ•Ï‚¦‚é‘O‚ÌƒVƒ‡[ƒgƒJƒbƒg‚àA‚±‚±‚Å’¼‚éj
-' E–¼‘OFuƒAƒ}ƒ_¶YŒv‰æ’Šov‚ÌƒVƒ‡[ƒgƒJƒbƒg‚ÍuƒAƒ}ƒ_¶YŠÇ—ƒVƒXƒeƒ€v‚É–¼‘O‚ğ•Ï‚¦‚é
+' E–¼‘OFuƒAƒ}ƒ_¶YŒv‰æ’ŠovuƒAƒ}ƒ_¶YŠÇ—ƒVƒXƒeƒ€v‚ÌƒVƒ‡[ƒgƒJƒbƒg‚Íu¶YŠÇ—ƒVƒXƒeƒ€v‚É–¼‘O‚ğ•Ï‚¦‚é
 Dim icoLocal, want, desk, f, lk, list, i, newLnk
 icoLocal = fso.BuildPath(dstDir, "icon.ico")
 want = """" & WScript.ScriptFullName & """"
@@ -56,7 +58,7 @@ For Each i In Split(list, vbLf)
         If fso.FileExists(icoLocal) Then lk.IconLocation = icoLocal & ",0"
         lk.Save
       End If
-      If LCase(fso.GetFileName(i)) = LCase(OLDAPP & ".lnk") And Not fso.FileExists(newLnk) Then fso.MoveFile i, newLnk
+      If (LCase(fso.GetFileName(i)) = LCase(OLDAPP & ".lnk") Or LCase(fso.GetFileName(i)) = LCase(OLDAPP2 & ".lnk")) And Not fso.FileExists(newLnk) Then fso.MoveFile i, newLnk
     End If
   End If
 Next

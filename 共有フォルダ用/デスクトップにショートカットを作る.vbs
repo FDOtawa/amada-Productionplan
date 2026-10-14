@@ -1,9 +1,9 @@
-' アマダ生産管理システム：起動用スクリプトを開くショートカットをデスクトップに作る
+' 生産管理システム：起動用スクリプトを開くショートカットをデスクトップに作る
 ' （共有フォルダに置いたまま、各PCでダブルクリックしてください）
 ' 起動に使うファイル（アプリ本体・起動用・アイコン）は「プログラムファイル」フォルダの中にあります
 ' アイコンは自分の PC（%LOCALAPPDATA%\AmadaPlan）にコピーしたものを使います（共有フォルダのアイコンは読めず白い形になるため）
 Option Explicit
-Const APP = "アマダ生産管理システム", OLDAPP = "アマダ生産計画抽出"
+Const APP = "生産管理システム", OLDAPP = "アマダ生産計画抽出", OLDAPP2 = "アマダ生産管理システム"
 Dim sh, fso, dir, vbs, ico, dstDir, icoLocal, lnk, desk
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
@@ -29,5 +29,6 @@ lnk.Save
 ' 名前を変える前のショートカットは消す（同じものが2つ並ばないように）
 On Error Resume Next
 If fso.FileExists(fso.BuildPath(desk, OLDAPP & ".lnk")) Then fso.DeleteFile fso.BuildPath(desk, OLDAPP & ".lnk"), True
+If fso.FileExists(fso.BuildPath(desk, OLDAPP2 & ".lnk")) Then fso.DeleteFile fso.BuildPath(desk, OLDAPP2 & ".lnk"), True
 On Error GoTo 0
 MsgBox "デスクトップに「" & APP & "」のショートカットを作りました（前のショートカットは置き換えました）。", vbInformation, APP
