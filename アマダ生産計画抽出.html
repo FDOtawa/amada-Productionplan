@@ -609,7 +609,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <table class="mt"><thead><tr><th>種類</th><th>機種名（EGB の後ろの数字4桁）</th><th>例</th></tr></thead><tbody>
 <tr><td>標準機</td><td>13〇〇、8〇〇〇、6＊＊＊（＊に「2」がある）</td><td class="ex">EGB1303、EGB8025、EGB6020</td></tr>
 <tr><td>小型機</td><td>4〇〇〇、6＊＊＊（＊に「1」がある）</td><td class="ex">EGB4010、EGB6013</td></tr></tbody></table>
-<h4>ファイン電子用生産機資料も使えます</h4>
+<h4>ファイン電子用生産機資料の読み方</h4>
 <p>HRB 土岐で使う「<b>ファイン電子用生産機資料-〇〇〇〇〇〇〇〇.xlsx</b>」も<b>対比表といっしょに取り込みます</b>（2つがそろっていないとエラーになります。EGB 集計・EGB 別盤も同じ）。<b>F列（機種名）の左3文字が「EGB」の行</b>を使い、処理のしかたは対比表と同じです。</p>
 <table class="mt"><thead><tr><th>出力する列</th><th>生産機資料のどこから</th></tr></thead><tbody>
 <tr><td>アマダ生産月</td><td>B列（202701 → 2027年1月）</td></tr><tr><td>機種名</td><td>F列（EX → EXP などの書き直しは同じ）</td></tr>
@@ -673,8 +673,8 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <tr><td>納入先が ITｴﾝｼﾞ</td><td><span style="display:inline-block;width:60px;height:18px;background:#BDD7EE;border:1px solid #999;vertical-align:middle"></span> 薄い青（見出しの青より少し濃い）</td></tr>
 <tr><td>納入先が ㈱ｱｻﾋ</td><td><span style="display:inline-block;width:60px;height:18px;background:#FFC7CE;border:1px solid #999;vertical-align:middle"></span> 薄い赤</td></tr>
 <tr><td>AESA シートから引き出した行</td><td><span style="display:inline-block;width:60px;height:18px;background:#FFF2CC;border:1px solid #999;vertical-align:middle"></span> 薄い黄</td></tr></tbody></table>
-<h4>ファイン電子用生産機資料も使えます</h4>
-<ul><li>EGB 制御盤と同じく、生産機資料の <b>F列が「EGB」の行</b>からも別盤を作ります（列の読み方は EGB 制御盤の説明と同じ）。</li>
+<h4>ファイン電子用生産機資料の読み方</h4>
+<ul><li>EGB 制御盤と同じく、対比表といっしょに取り込んだ生産機資料の <b>F列が「EGB」の行</b>からも別盤を作ります（列の読み方は EGB 制御盤の説明と同じ）。</li>
 <li>ロボットは、同じ生産機資料にある <b>EGBRBT〇〇〇</b> の行から、種類と下3桁で探します（例：60109<b>110</b> ↔ 10100<b>110</b>）。</li>
 <li>制御盤JIT日（J列）が「未定」なら、別盤の JIT日も「<b>未定</b>」です。</li>
 <li>対比表と同じシリアルがあるときは、対比表の行を使い、空欄だけを生産機資料で埋めます。生産機資料に制御盤JIT日の日付があれば、その日付から JIT日を計算し直します（例：制御盤JIT日 2026/12/1 → LC盤 11/17）。</li></ul>
