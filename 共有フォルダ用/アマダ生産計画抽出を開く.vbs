@@ -1,7 +1,7 @@
 ' アマダ生産計画抽出を開く（起動用）
 ' 共有フォルダの最新版のアプリを、自分の PC（%LOCALAPPDATA%\AmadaPlan）にコピーしてから Edge で開きます。
 ' 共有フォルダから直接開くと、Edge が保存先フォルダの選択を受け付けないことがあるため（2026-10-14）。
-' アプリを新しくするときは、今までどおり共有フォルダの「アマダ生産計画抽出.html」を置き換えるだけで、次の起動から全員が新しい版になります。
+' アプリ（とアイコン）を新しくするときは、共有フォルダの「アマダ生産計画抽出.html」「icon.ico」を置き換えるだけで、次の起動から全員が新しい版になります。
 Option Explicit
 Dim sh, fso, srcDir, src, ico, dstDir, dst, ok
 Set sh = CreateObject("WScript.Shell")
