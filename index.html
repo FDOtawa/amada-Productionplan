@@ -1333,22 +1333,30 @@ const egbValidate = (wb, taihi) => isEGBToki(wb) ? [] : taihi(wb);
 // 対比表と生産機資料の突き合わせ：同じシリアルは対比表の行を使い、生産機資料の JIT日が日付ならそれを使う（未定なら対比表のまま＝A案）。
 // recalc は別盤用（制御盤JIT日を差し替えて JIT日を計算し直す）
 function egbMergeToki(all, notes, recalc){
+  // 2026-10-14 ユーザー指示：対比表の行のまま。生産機資料は対比表の「空欄を埋める」ためのもの
+  // → 対比表で空欄の列（客先名・国名・ロボットシリアルなど）は生産機資料の値で埋める。JIT日は生産機資料に日付があればそれを優先（A案）、
+  //   生産機資料が「未定」なら対比表の日付のまま（対比表も空欄なら「未定」で埋める）
   const key = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
+  const empty = v => v === undefined || v === null || String(v).trim() === '';
+  const FILL = ['month', 'model', 'dest', 'country', 'customer', 'kind', 'landing', 'robot', 'shipTo', 'k'];
   const taihiKeys = new Set(all.filter(x => x.from !== 'toki').map(key).filter(Boolean));
   const dup = x => x.from === 'toki' && key(x) && taihiKeys.has(key(x));
   const tokiMap = new Map(all.filter(dup).map(x => [key(x) + '|' + (x.panel || ''), x]));
-  const hit = new Set(); let changed = 0;
+  const hit = new Set(); let changed = 0, filled = 0;
   const out = all.filter(x => !dup(x)).map(x => {
     if (x.from === 'toki') return x;
     const m = tokiMap.get(key(x) + '|' + (x.panel || ''));
     if (!m) return x;
     hit.add(key(x));
+    let y = { ...x }, f = false;
+    FILL.forEach(k => { if (empty(y[k]) && !empty(m[k])) { y[k] = m[k]; f = true; } }); // 空欄を埋める
     const d = x.panel ? m.ctrlJit : m.jit;
-    if (!(d instanceof Date)) return x; // 生産機資料が「未定」なら対比表の日付のまま
-    changed++;
-    return recalc ? recalc(x, d) : { ...x, jit: d };
+    if (d instanceof Date) { changed++; y = recalc ? recalc(y, d) : { ...y, jit: d }; }
+    else if (x.panel ? empty(y.ctrlJit) : empty(y.jit)) { y = x.panel ? { ...y, ctrlJit: d, jit: empty(y.jit) ? d : y.jit } : { ...y, jit: d }; f = true; } // 対比表も空欄なら「未定」で埋める
+    if (f) filled++;
+    return y;
   });
-  if (hit.size) notes.push(['info', `対比表と生産機資料で同じシリアルが${hit.size}件あり、対比表の行を使いました（生産機資料に日付があった${changed}行は、JIT日に生産機資料の日付を使用）。`]);
+  if (hit.size) notes.push(['info', `対比表と生産機資料で同じシリアルが${hit.size}件あり、対比表の行を使いました（JIT日に生産機資料の日付を使った行${changed}、空欄を生産機資料で埋めた行${filled}）。`]);
   return out;
 }
 
@@ -2265,7 +2273,7 @@ function run(){
     if (replaced) notes.push(['info', `${replaced}件のシリアルが複数のファイルにあったため、ファイル名の日付が新しいファイルの内容を採用しました。`]);
     noMarkCount = all.filter(x => proc.columns.some(c => c.need && !colVal(c, x))).length;
   }
-  if (proc.post) { const res = proc.post(all, notes); all.splice(0, all.length, ...res); }
+  if (proc.post) { const res = proc.post(all, notes); all.splice(0, all.length, ...res); noMarkCount = all.filter(x => proc.columns.some(c => c.need && !colVal(c, x))).length; } // 突き合わせで埋まった分を数え直す
   all.forEach(x => { if (typeof x.customer === 'string') x.customer = hankakuName(x.customer); }); // 客先名は半角にそろえる（全機種共通）
   if (proc.sortKey) {
     const t = x => x[proc.sortKey] instanceof Date ? x[proc.sortKey].getTime() : Infinity; // 空欄や「未定」などは最後（元の順のまま）
