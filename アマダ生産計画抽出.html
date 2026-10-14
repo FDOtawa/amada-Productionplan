@@ -1332,8 +1332,65 @@ const isEGB = m => String(m).normalize('NFKC').toUpperCase().trim().startsWith('
 const egbModel = m => String(m).replace(/[（(]\s*ARME\s*[)）]/gi, '').replace(/[_＿]\s*DOM(?![A-Za-z])/gi, '') // 「_DOM」も消す（2026-10-13 ユーザー指示）
   .replace(/(?<![A-Za-zＡ-Ｚａ-ｚ])(EX|ＥＸ)(?![A-Za-zＡ-Ｚａ-ｚ])/g, 'EXP');
 const egbDest = m => /(?<![A-Z])(EXP|EX|CE)(?![A-Z])/.test(String(m).normalize('NFKC').toUpperCase()) ? 'EXP' : 'DMS';
+// 2026-10-14 ユーザー指示：EGB 制御盤・EGB 別盤は、対比表のほかに「ファイン電子用生産機資料」（HRB 土岐と同じファイル）も取り込める。
+// 生産機資料は F列（機種名）の左3文字が EGB の行を使い、JIT日は HRB 土岐と同じく J列（組立着手日。日付以外は「未定」）。
+// 対比表と同じシリアルがあれば、対比表の行を使い、JIT日は生産機資料の日付を優先する（生産機資料が「未定」なら対比表の日付のまま＝A案）
+const egbTokiSheet = wb => wb.SheetNames.find(n => wb.Sheets[n] && wb.Sheets[n]['!ref'] && !validateToki(XLSX, wb.Sheets[n]).length);
+const isEGBTaihi = wb => !!(findSheet(wb, '(新)ベンダー小型') || findSheet(wb, '(新)EG'));
+const isEGBToki = wb => !!egbTokiSheet(wb) && !isEGBTaihi(wb);
+function egbTokiRows(XLSX, wb){
+  const ws = wb.Sheets[egbTokiSheet(wb)], range = XLSX.utils.decode_range(ws['!ref']), out = [];
+  const cellAt = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
+  const text = (r, c) => { const cell = cellAt(r, c); return cell ? String(cell.w !== undefined && typeof cell.v !== 'number' ? cell.w : cell.v).trim() : ''; };
+  for (let r = 1; r <= range.e.r; r++) {
+    const model = text(r, TOKI.F); if (!model) continue;
+    const ym = text(r, TOKI.B).normalize('NFKC').match(/^(\d{4})\D?(\d{1,2})$/); // 「202701」→ 2027年1月
+    const jc = cellAt(r, TOKI.J), jd = jc && (jc.v instanceof Date || typeof jc.v === 'number') ? toDate(jc.v) : null;
+    out.push({ row: r + 1, serial: text(r, TOKI.H).normalize('NFKC'), month: ym ? `${+ym[1]}年${+ym[2]}月` : text(r, TOKI.B), model, customer: text(r, TOKI.I),
+      g: text(r, TOKI.G), kubun: text(r, 0), jit: jd || '未定', src: '生産機資料' });
+  }
+  return out;
+}
+// EGB の元ファイルの定義チェック：生産機資料ならそのシートの定義（HRB 土岐と同じ）、それ以外は対比表の定義
+const egbValidate = (wb, taihi) => isEGBToki(wb) ? [] : taihi(wb);
+// 対比表と生産機資料の突き合わせ：同じシリアルは対比表の行を使い、生産機資料の JIT日が日付ならそれを使う（未定なら対比表のまま＝A案）。
+// recalc は別盤用（制御盤JIT日を差し替えて JIT日を計算し直す）
+function egbMergeToki(all, notes, recalc){
+  const key = x => String(x.serial || '').normalize('NFKC').trim().toUpperCase();
+  const taihiKeys = new Set(all.filter(x => x.from !== 'toki').map(key).filter(Boolean));
+  const dup = x => x.from === 'toki' && key(x) && taihiKeys.has(key(x));
+  const tokiMap = new Map(all.filter(dup).map(x => [key(x) + '|' + (x.panel || ''), x]));
+  const hit = new Set(); let changed = 0;
+  const out = all.filter(x => !dup(x)).map(x => {
+    if (x.from === 'toki') return x;
+    const m = tokiMap.get(key(x) + '|' + (x.panel || ''));
+    if (!m) return x;
+    hit.add(key(x));
+    const d = x.panel ? m.ctrlJit : m.jit;
+    if (!(d instanceof Date)) return x; // 生産機資料が「未定」なら対比表の日付のまま
+    changed++;
+    return recalc ? recalc(x, d) : { ...x, jit: d };
+  });
+  if (hit.size) notes.push(['info', `対比表と生産機資料で同じシリアルが${hit.size}件あり、対比表の行を使いました（生産機資料に日付があった${changed}行は、JIT日に生産機資料の日付を使用）。`]);
+  return out;
+}
+
 function validateEGBCtrl(XLSX, wb){ return EGB_PAIRS().flatMap(cfg => validateLarge(XLSX, wb, cfg)); }
+// 生産機資料から EGB 制御盤の行を作る（ロボット EGBRBT・AESA は外す）
+function extractEGBCtrlToki(XLSX, wb){
+  const rows = [], excluded = [];
+  egbTokiRows(XLSX, wb).forEach(x => {
+    if (!isEGB(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EGB ではない' }); return; }
+    if (robotTypeOf(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: 'ロボット（別盤で使う）' }); return; }
+    if (/AESA/.test((x.model + ' ' + x.customer + ' ' + x.kubun).normalize('NFKC').toUpperCase())) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: 'AESA（制御盤は AESA が自社で作る）' }); return; }
+    const dest = egbDest(x.model), kind = egbKind(x.model);
+    rows.push({ row: x.row, sheet: x.src, from: 'toki', month: x.month, model: egbModel(x.model), serial: x.serial, dest,
+      country: dest === 'DMS' ? '日本' : (countryOf(x.customer) || tokiCountryOfG(x.g)), customer: x.customer, kind, landing: EGB_LANDING[kind] || '', jit: x.jit });
+  });
+  return { rows, excluded, noMark: [], prodYear: null, prodMonth: null };
+}
 function extractEGBCtrl(XLSX, wb){
+  if (isEGBToki(wb)) return extractEGBCtrlToki(XLSX, wb);
   const runDate = new Date(), rows = [], excluded = [];
   EGB_PAIRS().forEach(cfg => {
     const nw = largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.NEW)], cfg), old = largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.OLD)], cfg);
@@ -1342,7 +1399,7 @@ function extractEGBCtrl(XLSX, wb){
       if (!isEGB(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EGB ではない' }); return; }
       if (/AESA/.test((x.model + ' ' + x.customer).normalize('NFKC').toUpperCase())) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: 'AESA（制御盤は AESA が自社で作る）' }); return; } // AESA は EGB 制御盤から外す（2026-10-13 ユーザー指示）
       const dest = egbDest(x.model);
-      rows.push({ row: x.row, sheet: cfg.NEW, month: prodMonthLabel(x.monthRaw, runDate), model: egbModel(x.model), serial: x.serial, dest,
+      rows.push({ row: x.row, sheet: cfg.NEW, from: 'taihi', month: prodMonthLabel(x.monthRaw, runDate), model: egbModel(x.model), serial: x.serial, dest,
         country: dest === 'DMS' ? '日本' : countryOf(x.customer), customer: x.customer, kind: egbKind(x.model), landing: EGB_LANDING[egbKind(x.model)] || '', jit: toDate(x.jitRaw) });
     });
   });
@@ -1443,27 +1500,31 @@ function validateEGBSub(XLSX, wb){
   return errs;
 }
 function extractEGBSub(XLSX, wb){
+  const toki = isEGBToki(wb); // 生産機資料（2026-10-14 追加）
   const runDate = new Date(), rows = [], excluded = [];
   const last3 = s => String(s || '').slice(-3);
   // 1) ロボット：ASTRO（新旧まとめ、TS を消す）と AESA の EGBROBOT
-  const robots = egbMerged(XLSX, wb, 'ASTRO', 'TS').filter(x => isEGB(x.model)).map(x => ({ ...x, type: robotTypeOf(x.model), used: false }));
-  const aesaAll = findSheet(wb, 'AESA') ? egbSheetRows(XLSX, wb.Sheets[findSheet(wb, 'AESA')], '').map(x => ({ ...x, src: 'AESA' })) : [];
+  // 生産機資料：F列が EGB の行（ロボット EGBRBT も同じ表にある。AESA は対比表の AESA シートで扱うので外す）
+  const tokiAll = toki ? egbTokiRows(XLSX, wb).filter(x => isEGB(x.model) && !/AESA/.test((x.model + ' ' + x.customer + ' ' + x.kubun).normalize('NFKC').toUpperCase())) : [];
+  const robots = (toki ? tokiAll.filter(x => robotTypeOf(x.model)) : egbMerged(XLSX, wb, 'ASTRO', 'TS').filter(x => isEGB(x.model))).map(x => ({ ...x, type: robotTypeOf(x.model), used: false }));
+  const aesaAll = !toki && findSheet(wb, 'AESA') ? egbSheetRows(XLSX, wb.Sheets[findSheet(wb, 'AESA')], '').map(x => ({ ...x, src: 'AESA' })) : [];
   const aesaRobots = aesaAll.filter(x => isEGB(x.model) && robotTypeOf(x.model)).map(x => ({ ...x, type: robotTypeOf(x.model), used: false }));
   const findRobot = (list, type, serial) => { const r = type && serial && list.find(y => !y.used && y.type === type && last3(y.serial) === last3(serial)); if (r) r.used = true; return r || null; };
   const makeRows = (x, robot, isAESA) => {
     const model = egbModel(x.model), form = egbForm(model), dest = egbDest(x.model), kind = egbKind(model);
-    const month = prodMonthLabel(x.monthRaw, runDate), ym = labelYM(month), ctrlJit = toDate(x.jitRaw);
-    const country = dest === 'DMS' ? '日本' : (countryOf(x.customer) || (isAESA || String(x.customer).normalize('NFKC').toUpperCase().trim() === 'AESA' ? '欧州' : '')); // AESA シートの行と、客先名が「AESA」だけの行は欧州（2026-10-13 ユーザー指示）
+    const month = x.month || prodMonthLabel(x.monthRaw, runDate), ym = labelYM(month), ctrlJit = x.jit !== undefined ? x.jit : toDate(x.jitRaw); // 生産機資料の行は month・jit（日付か「未定」）を持つ
+    const country = dest === 'DMS' ? '日本' : (countryOf(x.customer) || (x.g !== undefined ? tokiCountryOfG(x.g) : '') || (isAESA || String(x.customer).normalize('NFKC').toUpperCase().trim() === 'AESA' ? '欧州' : '')); // AESA シートの行と、客先名が「AESA」だけの行は欧州（2026-10-13 ユーザー指示）
     (EGB_PANELS[form] || []).forEach(panel => {
       const shipTo = egbShipTo(panel, model, dest, kind, ym);
-      const jit = isAESA ? ctrlJit : businessDaysBefore(ctrlJit, egbSubDays(panel, shipTo)); // AESA は JIT日＝制御盤JIT日＝J列
-      rows.push({ row: x.row, sheet: x.src, month, model: (isAESA ? x.model : model) + `(${panel})`, serial: x.serial,
+      const jit = isAESA ? ctrlJit : ctrlJit instanceof Date ? businessDaysBefore(ctrlJit, egbSubDays(panel, shipTo)) : (ctrlJit || null); // AESA は JIT日＝制御盤JIT日＝J列。生産機資料の「未定」はそのまま
+      rows.push({ row: x.row, sheet: x.src, from: toki ? 'toki' : 'taihi', panel, aesa: isAESA, month, model: (isAESA ? x.model : model) + `(${panel})`, serial: x.serial,
         robot: panel === 'ATC盤' ? '' : (robot ? robot.serial : ''), dest, country, customer: isAESA ? 'AESA' : x.customer, shipTo, jit, ctrlJit, // AESA シートの客先名は「AESA」一択（2026-10-13 ユーザー指示）
         k: panel === 'LC盤' ? (K_OF[robot ? robot.type : egbRobotType(model)] || '') : '' });
     });
   };
   // 2) ﾍﾞﾝﾀﾞｰ小型・ﾍﾞﾝﾀﾞｰ中型・EG（新旧まとめ、TS を消す）の AE・RE・ARE
-  ['ベンダー小型', 'ベンダー中型', 'EG'].forEach(kind => egbMerged(XLSX, wb, kind, 'TS').forEach(x => {
+  const machines = toki ? [tokiAll.filter(x => !robotTypeOf(x.model))] : ['ベンダー小型', 'ベンダー中型', 'EG'].map(kind => egbMerged(XLSX, wb, kind, 'TS'));
+  machines.forEach(list => list.forEach(x => {
     if (!isEGB(x.model)) return;
     const form = egbForm(egbModel(x.model));
     if (!EGB_PANELS[form]) return; // E・無印は別盤なし
@@ -1474,9 +1535,9 @@ function extractEGBSub(XLSX, wb){
   robots.filter(r => !r.used && ORPHAN[r.type]).forEach(r => {
     const exp = /EXP/.test(String(r.model).normalize('NFKC').toUpperCase());
     const model = ORPHAN[r.type] + (exp ? '_EXP' : ''), dest = exp ? 'EXP' : 'DMS', kind = r.type === '010' ? '小型機' : '標準機';
-    const month = prodMonthLabel(r.monthRaw, runDate), ym = labelYM(month);
-    (r.type === '010' ? ['LC盤'] : ['ATC盤', 'LC盤', 'LD盤']).forEach(panel => rows.push({ row: r.row, sheet: r.src, month, model: model + `(${panel})`, serial: '',
-      robot: r.serial, dest, country: dest === 'DMS' ? '日本' : countryOf(r.customer), customer: r.customer, shipTo: egbShipTo(panel, model, dest, kind, ym),
+    const month = r.month || prodMonthLabel(r.monthRaw, runDate), ym = labelYM(month);
+    (r.type === '010' ? ['LC盤'] : ['ATC盤', 'LC盤', 'LD盤']).forEach(panel => rows.push({ row: r.row, sheet: r.src, from: toki ? 'toki' : 'taihi', panel, month, model: model + `(${panel})`, serial: '',
+      robot: r.serial, dest, country: dest === 'DMS' ? '日本' : (countryOf(r.customer) || (r.g !== undefined ? tokiCountryOfG(r.g) : '')), customer: r.customer, shipTo: egbShipTo(panel, model, dest, kind, ym),
       jit: null, ctrlJit: null, k: panel === 'LC盤' ? K_OF[r.type] : '', orphan: true })); // JIT日・制御盤JIT日は懸案（ユーザーが改めて指示）
   });
   // 4) AESA シート：シリアルはそのまま。E・無印は外し、AE・RE・ARE から作る。ロボットは AESA の EGBROBOT から種類＋下3桁で
@@ -1487,6 +1548,9 @@ function extractEGBSub(XLSX, wb){
   });
   return { rows, excluded, noMark: rows.filter(x => !x.jit), prodYear: null, prodMonth: null };
 }
+
+// 別盤：制御盤JIT日を差し替えたら、JIT日も同じきまり（営業日で n 日前。AESA は同じ日）で計算し直す
+const egbSubRecalc = (x, ctrlJit) => ({ ...x, ctrlJit, jit: x.aesa ? ctrlJit : businessDaysBefore(ctrlJit, egbSubDays(x.panel, x.shipTo)) });
 
 // 機種の列の固定の値（value）を行の値として取り出す（集計で下層の機種の設定をそのまま使うため）
 const fixedVals = cols => Object.fromEntries((cols || []).filter(c => c.value !== undefined).map(c => [c.key, c.value]));
@@ -1801,6 +1865,8 @@ const PROCESSORS = {
     validate: (wb) => [...PROCESSORS['EGB 制御盤'].validate(wb), ...PROCESSORS['EGB 別盤'].validate(wb)],
     extract:  (wb) => { const a = PROCESSORS['EGB 制御盤'].extract(wb), b = PROCESSORS['EGB 別盤'].extract(wb);
       return { rows: [...a.rows.map(x => ({ ...x, egb: 'ctrl' })), ...b.rows.map(x => ({ ...x, egb: 'sub' }))], excluded: a.excluded, noMark: [...a.noMark, ...b.noMark], prodYear: null, prodMonth: null }; },
+    groupBy: x => x.egb + '|' + PROCESSORS[x.egb === 'ctrl' ? 'EGB 制御盤' : 'EGB 別盤'].groupBy(x), // 下層の機種のきまりを使う
+    post: (all, notes) => { const P = PROCESSORS; return [...P['EGB 制御盤'].post(all.filter(x => x.egb === 'ctrl'), notes), ...P['EGB 別盤'].post(all.filter(x => x.egb === 'sub'), notes)]; },
     get columns(){ return PROCESSORS['EGB 制御盤'].columns; },
     outName: 'EGB集計',
     sheets: [{ get name(){ return PROCESSORS['EGB 制御盤'].outName; }, filter: x => x.egb === 'ctrl', get columns(){ return PROCESSORS['EGB 制御盤'].columns; }, get rowFill(){ return PROCESSORS['EGB 制御盤'].rowFill; } },
@@ -1812,8 +1878,10 @@ const PROCESSORS = {
     book: true,
     sortKey: 'jit',
     earliestYM: true,
-    validate: (wb) => validateEGBCtrl(XLSX, wb),
+    validate: (wb) => egbValidate(wb, w => validateEGBCtrl(XLSX, w)), // 対比表か生産機資料（2026-10-14 追加）
     extract:  (wb) => extractEGBCtrl(XLSX, wb),
+    groupBy: x => x.from, // 新しいファイルの採用は同じ種類（対比表どうし・生産機資料どうし）で比べる
+    post: (all, notes) => egbMergeToki(all, notes), // 対比表と生産機資料に同じシリアル → 対比表の行、JIT日は生産機資料（日付のとき）
     columns: [{ key: 'month', label: 'アマダ生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'メカシリアル' }, { key: 'dest', label: '仕向' },
       { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true },
       { key: 'kind', label: '種類' }, { key: 'landing', label: '着地' }, // 2026-10-13 追加：種類＝小型機／標準機、着地＝小型機は土岐・標準機は富士宮
@@ -1826,8 +1894,10 @@ const PROCESSORS = {
     book: true,
     sortKey: 'jit',
     earliestYM: true,
-    validate: (wb) => validateEGBSub(XLSX, wb),
+    validate: (wb) => egbValidate(wb, w => validateEGBSub(XLSX, w)), // 対比表か生産機資料（2026-10-14 追加）
     extract:  (wb) => extractEGBSub(XLSX, wb),
+    groupBy: x => x.from,
+    post: (all, notes) => egbMergeToki(all, notes, egbSubRecalc), // 同じシリアル → 対比表の行、制御盤JIT日は生産機資料（日付のとき）にして JIT日を計算し直す
     columns: [{ key: 'month', label: 'アマダ生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'メカシリアル' }, { key: 'robot', label: 'ロボットシリアル' },
       { key: 'dest', label: '仕向' }, { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'shipTo', label: '納入先' },
       { key: 'jit', label: 'JIT日', date: true, need: true }, { key: 'ctrlJit', label: '制御盤JIT日', date: true }, { key: 'k', label: 'K数' }],
