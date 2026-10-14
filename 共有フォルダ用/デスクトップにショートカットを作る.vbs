@@ -1,14 +1,15 @@
 ' アマダ生産計画抽出：起動用スクリプトを開くショートカットをデスクトップに作る
 ' （共有フォルダに置いたまま、各PCでダブルクリックしてください）
+' 起動に使うファイル（アプリ本体・起動用・アイコン）は「プログラムファイル」フォルダの中にあります（2026-10-14）
 ' アイコンは自分の PC（%LOCALAPPDATA%\AmadaPlan）にコピーしたものを使います（共有フォルダのアイコンは読めず白い形になるため）
 Option Explicit
 Dim sh, fso, dir, vbs, ico, dstDir, icoLocal, lnk
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
-dir = fso.GetParentFolderName(WScript.ScriptFullName)
+dir = fso.BuildPath(fso.GetParentFolderName(WScript.ScriptFullName), "プログラムファイル")
 vbs = fso.BuildPath(dir, "アマダ生産計画抽出を開く.vbs")
 If Not fso.FileExists(vbs) Then
-  MsgBox "このフォルダに「アマダ生産計画抽出を開く.vbs」がありません。", vbExclamation, "アマダ生産計画抽出"
+  MsgBox "「プログラムファイル」フォルダに「アマダ生産計画抽出を開く.vbs」がありません。", vbExclamation, "アマダ生産計画抽出"
   WScript.Quit
 End If
 dstDir = fso.BuildPath(sh.ExpandEnvironmentStrings("%LOCALAPPDATA%"), "AmadaPlan")
