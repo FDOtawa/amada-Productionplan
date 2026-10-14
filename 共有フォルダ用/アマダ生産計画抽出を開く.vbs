@@ -27,6 +27,24 @@ If Not fso.FileExists(dst) Then
   WScript.Quit
 End If
 If Not ok Then MsgBox "共有フォルダに入れなかったため、この PC に前回コピーした版で開きます。", vbInformation, "アマダ生産計画抽出"
+' デスクトップの「アマダ生産計画抽出」のショートカットのアイコンを、共有フォルダの icon.ico（を自分の PC にコピーしたもの）にそろえる（2026-10-14）
+' （共有フォルダのアイコンを直接指すと Windows が読めず白い形になるため、コピーを指す。共有の icon.ico を置き換えれば、次の起動で全員のアイコンが変わる）
+Dim icoLocal, deskDir, f, lk
+icoLocal = fso.BuildPath(dstDir, "icon.ico")
+On Error Resume Next
+If fso.FileExists(icoLocal) Then
+  deskDir = sh.SpecialFolders("Desktop")
+  For Each f In fso.GetFolder(deskDir).Files
+    If LCase(fso.GetExtensionName(f.Name)) = "lnk" Then
+      Set lk = sh.CreateShortcut(f.Path)
+      If InStr(lk.Arguments, "アマダ生産計画抽出を開く.vbs") > 0 Or InStr(lk.TargetPath, "アマダ生産計画抽出.html") > 0 Then
+        If lk.IconLocation <> icoLocal & ",0" Then lk.IconLocation = icoLocal & ",0" : lk.Save
+      End If
+    End If
+  Next
+End If
+Err.Clear
+On Error GoTo 0
 ' Edge で開く（Edge が無ければ、ふだん使うブラウザで開く）
 On Error Resume Next
 sh.Run "msedge """ & dst & """", 1, False
