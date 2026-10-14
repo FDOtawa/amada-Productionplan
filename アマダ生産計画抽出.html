@@ -1897,6 +1897,12 @@ const PROCESSORS = {
     earliestYM: true,
     // 2026-10-14 ユーザー指示：EGB 制御盤・EGB 別盤を直したら EGB 集計にも自動で反映させる → 下層の機種の設定をその場で呼び出す
     validate: (wb) => [...PROCESSORS['EGB 制御盤'].validate(wb), ...PROCESSORS['EGB 別盤'].validate(wb)],
+    // 2026-10-14 ユーザー指示：EGB 集計は「対比表」と「ファイン電子用生産機資料」の2つがそろっていなければエラー（EGB 制御盤・EGB 別盤は1つでも可）
+    checkFiles: (fs) => {
+      const miss = [['対比表', fs.some(f => !isEGBToki(f.wb))], ['ファイン電子用生産機資料', fs.some(f => isEGBToki(f.wb))]].filter(([, ok]) => !ok).map(([n]) => n);
+      return miss.length ? [{ cause: `EGB 集計には「対比表」と「ファイン電子用生産機資料」の2つが必要です（足りないファイル：${miss.join('・')}）`,
+        fix: `${miss.map(n => `「${n}」`).join('と')}を取り込んでから、もう一度「処理開始」を押してください` }] : [];
+    },
     extract:  (wb) => { const a = PROCESSORS['EGB 制御盤'].extract(wb), b = PROCESSORS['EGB 別盤'].extract(wb);
       return { rows: [...a.rows.map(x => ({ ...x, egb: 'ctrl' })), ...b.rows.map(x => ({ ...x, egb: 'sub' }))], excluded: a.excluded, noMark: [...a.noMark, ...b.noMark], prodYear: null, prodMonth: null }; },
     groupBy: x => x.egb + '|' + PROCESSORS[x.egb === 'ctrl' ? 'EGB 制御盤' : 'EGB 別盤'].groupBy(x), // 下層の機種のきまりを使う
@@ -2277,6 +2283,13 @@ function run(){
   if (bad.length) {
     completed = false; $('result').hidden = true; lastRows = []; refreshDl();
     showErr('処理を開始できません', bad);
+    return;
+  }
+  // 機種ごとの、取り込んだファイルの組み合わせのチェック（例：EGB 集計は対比表と生産機資料の両方が必要）
+  const setErr = proc.checkFiles ? proc.checkFiles(files) : [];
+  if (setErr.length) {
+    completed = false; $('result').hidden = true; lastRows = []; refreshDl();
+    showErr('処理を開始できません', setErr);
     return;
   }
   const all = [], excluded = [], notes = [];
