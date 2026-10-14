@@ -1003,7 +1003,8 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
  <div class="sheetbox res"><div class="t">一覧表</div><div class="r dup">0101（新を採用）</div><div class="r">0102</div><div class="r only">0099（旧だけ）</div></div>
 </div>
 <ul><li>読み込む前に、すべてのセルの前後の余白（全角・半角スペース）を自動で取り除きます。</li>
-<li>シリアル（A列）の先頭の「<b>HG</b>」を取り除きます（例：HG24501 → 24501）。</li></ul>
+<li>シリアル（A列）の先頭の「<b>HG</b>」を取り除きます（例：HG24501 → 24501）。</li>
+<li><b>(旧)にしか無いシリアルの行</b>は、ほかの行と同じように出力し、帳票の行（全部の列）を<span style="display:inline-block;width:46px;height:16px;background:#FFF2CC;border:1px solid #999;vertical-align:middle;margin:0 4px"></span><b>薄い黄色</b>で塗ります（(新)から消えた機械なので、確かめやすくするため）。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th><th>中身</th></tr></thead><tbody>
 <tr><td>AMD生産月</td><td>B列（例：2026年9月）。年は処理した日で決めます。</td></tr>
 <tr><td>機種名</td><td>D列</td></tr><tr><td>シリアル</td><td>A列（先頭の HG を取ったもの）</td></tr>
@@ -2261,6 +2262,7 @@ const PROCESSORS = {
     book: true, // 対比表の (新)(旧)ﾍﾞﾝﾀﾞｰ中型 の2シート単位で処理する。A列の先頭「HG」を取り除く以外は HRB 大型と同じ
     validate: (wb) => validateLarge(XLSX, wb, MIDDLE_HG),
     extract:  (wb) => extractLarge(XLSX, wb, MIDDLE_HG),
+    rowFill: x => x.sheet === '旧' ? 'yellow' : '', // 2026-10-14 ユーザー指示：(旧)にしかないシリアルの行は、処理はそのままで薄い黄色で網掛け
     columns: [{ key: 'month', label: 'AMD生産月' }, { key: 'model', label: '機種名' }, { key: 'serial', label: 'シリアル' }, // 仕向の列は出さない（2026-10-10 ユーザー指定。国名の判定には内部で使う）
       { key: 'country', label: '国名' }, { key: 'customer', label: '客先名', wrap: true }, { key: 'jit', label: 'JIT日', date: true, need: true }, { key: 'note', label: '備考' }],
     outName: 'JIT日一覧',
