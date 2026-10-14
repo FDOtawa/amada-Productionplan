@@ -579,10 +579,12 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
  <div class="sheetbox res"><div class="t">一覧表</div><div class="r">ARC10090</div><div class="r dup">ARC10095（新しい方）</div><div class="r">ARC20042</div></div>
 </div>
 <div class="warnbox">ファイルが2つ以上のときは、<b>ファイル名に日付が必要</b>です（例：<b>20261003</b>、<b>202701</b>、<b>2026.09.07</b>、2026年9月7日）。日付が読み取れないファイルや、日付が同じファイルに同じシリアルがあるときはエラーになります。</div>
+<div class="tip">HRB 集計・EGB（集計・制御盤・別盤）は、<b>種類の違うファイル</b>（対比表と生産機資料など）を組み合わせて使います。種類の違うファイルどうしの重なりは、日付ではなく<b>その機種のきまり</b>でまとめます（7章の各機種を見てください）。</div>
 </section><section class="man-sec" id="man-kinds"><h3><b>7</b>機種ごとの内容</h3><p>下の機種ボタンを押すと、<b>その機種の説明だけ</b>が残ります。元ファイルのどこを読み、一覧表に何を出すかを説明しています。</p><div class="mp" id="manPick"><div class="mp-col"><button type="button" class="mp-tile ready" data-m="EGB 集計">EGB 集計<i>設定済み</i></button><button type="button" class="mp-tile ready sub" data-m="EGB 制御盤"><span class="mp-sub" aria-hidden="true">└</span>EGB 制御盤<i>設定済み</i></button><button type="button" class="mp-tile ready sub" data-m="EGB 別盤"><span class="mp-sub" aria-hidden="true">└</span>EGB 別盤<i>設定済み</i></button><button type="button" class="mp-tile ready" data-m="HRB 集計">HRB 集計<i>設定済み</i></button><button type="button" class="mp-tile ready sub" data-m="HRB 土岐"><span class="mp-sub" aria-hidden="true">└</span>HRB 土岐<i>設定済み</i></button><button type="button" class="mp-tile ready sub" data-m="HRB KD"><span class="mp-sub" aria-hidden="true">└</span>HRB KD<i>設定済み</i></button><button type="button" class="mp-tile ready sub" data-m="HRB 大型"><span class="mp-sub" aria-hidden="true">└</span>HRB 大型<i>設定済み</i></button><button type="button" class="mp-tile ready sub" data-m="HRB ATC盤"><span class="mp-sub" aria-hidden="true">└</span>HRB ATC盤<i>設定済み</i></button></div><div class="mp-col"><button type="button" class="mp-tile ready" data-m="HG">HG<i>設定済み</i></button><button type="button" class="mp-tile ready" data-m="複合機">複合機<i>設定済み</i></button><button type="button" class="mp-tile" data-m="レーザ">レーザ<i>未設定</i></button><button type="button" class="mp-tile" data-m="AE">AE<i>未設定</i></button><button type="button" class="mp-tile" data-m="発振器">発振器<i>未設定</i></button><button type="button" class="mp-tile" data-m="小板発振器">小板発振器<i>未設定</i></button><button type="button" class="mp-tile" data-m="FLW">FLW<i>未設定</i></button></div></div><div class="mp-bar"><span id="manPickMsg">機種ボタンを押すと、その機種の説明だけが表示されます。</span><button type="button" class="man-hbtn" id="manPickAll">すべての機種を表示</button></div><div class="mblk" data-m="EGB 集計"><h4>EGB 集計</h4>
-<p><b>EGB 制御盤</b>と<b>EGB 別盤</b>をまとめて、1つのファイルに出力します。元ファイルは対比表1つです。</p>
+<p><b>EGB 制御盤</b>と<b>EGB 別盤</b>をまとめて、1つのファイルに出力します。元ファイルは<b>対比表</b>と<b>ファイン電子用生産機資料</b>です（生産機資料は無くても処理できます）。</p>
 <div class="diagram">
  <div class="sheetbox"><div class="t">対比表</div><div class="r">ベンダー小型・中型・EG</div><div class="r">ASTRO・AESA</div></div>
+ <div class="sheetbox"><div class="t">生産機資料</div><div class="r">F列が EGB の行</div></div>
  <div class="arrow"><span>➜</span>まとめて出力</div>
  <div class="sheetbox new"><div class="t">① シート「EGB制御盤」</div><div class="r">EGB 制御盤と同じ</div></div>
  <div class="sheetbox res"><div class="t">② シート「EGB別盤」</div><div class="r">EGB 別盤と同じ</div></div>
@@ -592,7 +594,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <li>個別に出したいときは、下層の EGB 制御盤・EGB 別盤のボタンも使えます。</li></ul>
 <p class="ex">保存名の例：EGB集計 AMD生産計画 2026.10.13</p></div>
 <div class="mblk" data-m="EGB 制御盤"><h4>EGB 制御盤</h4>
-<p><b>元ファイル：</b>〇〇〇〇〇〇〇〇ファイン様生産計画対比表.xlsx。<b>(新)(旧)ﾍﾞﾝﾀﾞｰ小型</b>（標準機）と<b>(新)(旧)EG</b>（小型機）のシートを読みます（ASTRO・AESA などは使いません）。(新)(旧)の突き合わせは HG と同じです。</p>
+<p><b>元ファイル：</b>〇〇〇〇〇〇〇〇ファイン様生産計画対比表.xlsx（と、ファイン電子用生産機資料。下の説明）。<b>(新)(旧)ﾍﾞﾝﾀﾞｰ小型</b>（標準機）と<b>(新)(旧)EG</b>（小型機）のシートを読みます（ASTRO・AESA などは使いません）。(新)(旧)の突き合わせは HG と同じです。</p>
 <ul><li>D列（機種名）の左3文字が「<b>EGB</b>」の行だけを使います。<b>AESA</b>（機種名か客先名に AESA）の行は外します（AESA は制御盤を自社で作るため）。</li>
 <li>A列（シリアル）の先頭の「<b>TS</b>」を消します（例：TS13329056 → 13329056）。</li>
 <li>機種名の「<b>EX</b>」は「<b>EXP</b>」に書き直し、「<b>(ARME)</b>」「<b>_DOM</b>」は消します（例：EGB4010E_EX → EGB4010E_EXP、EGB1303ARE_DOM(ARME) → EGB1303ARE）。</li></ul>
@@ -606,10 +608,29 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <table class="mt"><thead><tr><th>種類</th><th>機種名（EGB の後ろの数字4桁）</th><th>例</th></tr></thead><tbody>
 <tr><td>標準機</td><td>13〇〇、8〇〇〇、6＊＊＊（＊に「2」がある）</td><td class="ex">EGB1303、EGB8025、EGB6020</td></tr>
 <tr><td>小型機</td><td>4〇〇〇、6＊＊＊（＊に「1」がある）</td><td class="ex">EGB4010、EGB6013</td></tr></tbody></table>
-<p>シート名「<b>EGB制御盤</b>」。JIT日の早い順（空欄は下）です。</p>
+<h4>ファイン電子用生産機資料も使えます</h4>
+<p>HRB 土岐で使う「<b>ファイン電子用生産機資料-〇〇〇〇〇〇〇〇.xlsx</b>」も、対比表といっしょに（または1つだけで）取り込めます。<b>F列（機種名）の左3文字が「EGB」の行</b>を使い、処理のしかたは対比表と同じです。</p>
+<table class="mt"><thead><tr><th>出力する列</th><th>生産機資料のどこから</th></tr></thead><tbody>
+<tr><td>アマダ生産月</td><td>B列（202701 → 2027年1月）</td></tr><tr><td>機種名</td><td>F列（EX → EXP などの書き直しは同じ）</td></tr>
+<tr><td>メカシリアル</td><td>H列（TS は付いていないので、そのまま）</td></tr><tr><td>客先名</td><td>I列</td></tr>
+<tr><td>国名</td><td>DMS → 日本、EXP → 客先名から。分からなければ G列の仕向地から（HRB 土岐と同じ）</td></tr>
+<tr><td>JIT日</td><td>J列（組立着手日）。日付でないときは「<b>未定</b>」（HRB 土岐と同じ）</td></tr></tbody></table>
+<ul><li>ロボット（EGBRBT〇〇〇）の行と AESA の行は、制御盤には出しません。</li></ul>
+<p><b>対比表と同じシリアルがあるとき</b>は、<b>対比表の行</b>を使います。生産機資料は、<b>対比表の空欄を埋める</b>ために使います。</p>
+<div class="diagram">
+ <div class="sheetbox new"><div class="t">対比表</div><div class="r dup">シリアル A　客先：空欄</div><div class="r dup">JIT日 2026/11/20</div></div>
+ <div class="sheetbox"><div class="t">生産機資料</div><div class="r only">シリアル A　客先：〇〇(株)</div><div class="r only">JIT日 2026/12/1</div></div>
+ <div class="arrow"><span>➜</span>突き合わせ</div>
+ <div class="sheetbox res"><div class="t">一覧表（対比表の行）</div><div class="r">客先：〇〇(株)（空欄を埋める）</div><div class="r">JIT日 2026/12/1（生産機資料）</div></div>
+</div>
+<table class="mt"><thead><tr><th>列</th><th>まとめ方</th></tr></thead><tbody>
+<tr><td>JIT日</td><td>生産機資料に<b>日付があれば生産機資料</b>の日付。生産機資料が「未定」なら<b>対比表の日付のまま</b>（対比表も空欄なら「未定」）</td></tr>
+<tr><td>ほかの列</td><td>対比表のまま。<b>対比表で空欄の列だけ</b>生産機資料の値で埋めます</td></tr></tbody></table>
+<div class="tip">対比表の<b>(新)と(旧)</b>は、<b>(新)の行をまるごと</b>使います。(新)の客先名が空欄でも、(旧)の客先名では埋めません。<b>シリアルは変わりませんが、シリアルとお客様（エンドユーザー）の結び付きは時期によって変わることがある</b>ためです。<br>例：62077144 EGB6020E　(旧)（有）ステンレスアート共栄 → (新)空欄 ＝ 客先名は空欄、仕向 DMS、国名 日本</div>
+<p>シート名「<b>EGB制御盤</b>」。JIT日の早い順（空欄・未定は下）です。</p>
 <p class="ex">保存名の例：EGB制御盤 AMD生産計画 2026.10.13</p></div>
 <div class="mblk" data-m="EGB 別盤"><h4>EGB 別盤</h4>
-<p><b>元ファイル：</b>対比表。<b>ﾍﾞﾝﾀﾞｰ大型と「〜対照表」以外のすべてのシート</b>（ﾍﾞﾝﾀﾞｰ小型・ﾍﾞﾝﾀﾞｰ中型・EG・ASTRO・AESA）を読みます。D列が「EGB」の行だけが対象です。(新)(旧)の突き合わせは HG と同じです。</p>
+<p><b>元ファイル：</b>対比表（と、ファイン電子用生産機資料。下の説明）。対比表は<b>ﾍﾞﾝﾀﾞｰ大型と「〜対照表」以外のすべてのシート</b>（ﾍﾞﾝﾀﾞｰ小型・ﾍﾞﾝﾀﾞｰ中型・EG・ASTRO・AESA）を読みます。D列が「EGB」の行だけが対象です。(新)(旧)の突き合わせは HG と同じです。</p>
 <p><b>機種名の形で、作る別盤が決まります。</b>元の機種名の末尾に「(〇〇盤)」を付けた行を作ります。</p>
 <table class="mt"><thead><tr><th>機種名の形</th><th>作る行</th><th>例</th></tr></thead><tbody>
 <tr><td>〇〇〇〇E・無印</td><td>（別盤なし）</td><td class="ex">EGB4010E、EGB8025_CE_AESA</td></tr>
@@ -651,7 +672,12 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <tr><td>納入先が ITｴﾝｼﾞ</td><td><span style="display:inline-block;width:60px;height:18px;background:#BDD7EE;border:1px solid #999;vertical-align:middle"></span> 薄い青（見出しの青より少し濃い）</td></tr>
 <tr><td>納入先が ㈱ｱｻﾋ</td><td><span style="display:inline-block;width:60px;height:18px;background:#FFC7CE;border:1px solid #999;vertical-align:middle"></span> 薄い赤</td></tr>
 <tr><td>AESA シートから引き出した行</td><td><span style="display:inline-block;width:60px;height:18px;background:#FFF2CC;border:1px solid #999;vertical-align:middle"></span> 薄い黄</td></tr></tbody></table>
-<p>シート名「<b>EGB別盤</b>」。JIT日の早い順（空欄は下）です。</p>
+<h4>ファイン電子用生産機資料も使えます</h4>
+<ul><li>EGB 制御盤と同じく、生産機資料の <b>F列が「EGB」の行</b>からも別盤を作ります（列の読み方は EGB 制御盤の説明と同じ）。</li>
+<li>ロボットは、同じ生産機資料にある <b>EGBRBT〇〇〇</b> の行から、種類と下3桁で探します（例：60109<b>110</b> ↔ 10100<b>110</b>）。</li>
+<li>制御盤JIT日（J列）が「未定」なら、別盤の JIT日も「<b>未定</b>」です。</li>
+<li>対比表と同じシリアルがあるときは、対比表の行を使い、空欄だけを生産機資料で埋めます。生産機資料に制御盤JIT日の日付があれば、その日付から JIT日を計算し直します（例：制御盤JIT日 2026/12/1 → LC盤 11/17）。</li></ul>
+<p>シート名「<b>EGB別盤</b>」。JIT日の早い順（空欄・未定は下）です。</p>
 <p class="ex">保存名の例：EGB別盤 AMD生産計画 2026.10.13</p></div>
 <div class="mblk" data-m="HRB 集計"><h4>HRB 集計</h4>
 <p><b>HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 の4つをまとめて（合算して）</b>、1つのファイルにします。元ファイルは、それぞれの機種と同じものを<b>まとめて取り込みます</b>（8つまで。順番は自由。どの種類のファイルかはアプリが自動で見分けます）。</p>
