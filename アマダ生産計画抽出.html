@@ -662,7 +662,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
   </div>
   <div class="dlg man-dlg" id="manDlg" hidden>
     <div class="man-box" role="dialog" aria-modal="true" aria-labelledby="manTitle">
-      <div class="man-head"><span class="gem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span><h2 id="manTitle">操作マニュアル<small>アマダ生産計画抽出　Ver 1.0</small></h2><button type="button" class="man-hbtn" id="manPrint">印刷</button><button type="button" class="man-hbtn close" id="manClose">閉じる ✕</button></div>
+      <div class="man-head"><span class="gem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 11h6"/></svg></span><h2 id="manTitle">操作マニュアル<small>アマダ向け生産管理システム　Ver 1.0</small></h2><button type="button" class="man-hbtn" id="manPrint">印刷</button><button type="button" class="man-hbtn close" id="manClose">閉じる ✕</button></div>
       <div class="man-main"><nav class="man-nav" id="manNav"><a href="#man-about" data-sec="man-about"><b>1</b>はじめに</a><a href="#man-screen" data-sec="man-screen"><b>2</b>画面の見かた</a><a href="#man-files" data-sec="man-files"><b>3</b>ファイルを取り込む</a><a href="#man-machine" data-sec="man-machine"><b>4</b>機種を選ぶ</a><a href="#man-save" data-sec="man-save"><b>5</b>処理開始と保存</a><a href="#man-multi" data-sec="man-multi"><b>6</b>複数のファイルをまとめる</a><a href="#man-kinds" data-sec="man-kinds"><b>7</b>機種ごとの内容</a><a href="#man-output" data-sec="man-output"><b>8</b>出力される一覧表</a><a href="#man-errors" data-sec="man-errors"><b>9</b>エラーが出たとき</a><a href="#man-faq" data-sec="man-faq"><b>10</b>起動・終了とよくある質問</a><a href="#man-settings" data-sec="man-settings"><b>11</b>設定</a></nav><div class="man-body" id="manBody"><section class="man-sec" id="man-about"><h3><b>1</b>はじめに</h3>
 <h4>アマダ向け生産管理システムと TOP ページ</h4>
 <p>このアプリは「<b>アマダ向け生産管理システム</b>」です。起動するとオープニングのあと <b>TOP ページ</b>が開き、3つの業務から使うものを選びます。業務のボタンを押すと、その業務のページへ<b>やわらかく切り替わります</b>。終わるときは右上の「アプリを閉じる」でエンディングが流れて閉じます。</p>
@@ -1065,7 +1065,7 @@ html[data-theme="black"] .slot.picked{background:var(--rose);border-color:var(--
 <tr><td>JIT日や納期が空欄の行がある</td><td>元ファイルに ▲ や 本4・本3、着手日が無い行です。保存画面に件数の注意が出ます。元ファイルを確認してください。</td></tr>
 <tr><td>アプリを終わりたい</td><td>右上の「アプリを閉じる」を押します（エンディングのあと閉じます）。</td></tr>
 <tr><td>保存をやめたい</td><td>保存画面の「キャンセル」を押します。取り込んだファイルはそのまま残ります。</td></tr>
-<tr><td>アプリが新しくなった</td><td>新しい「アマダ生産計画抽出.html」を受け取ったら、古いファイルと置き換えてください（ショートカットはそのまま使えます）。</td></tr>
+<tr><td>アプリが新しくなった</td><td>共有フォルダから使っている PC は、何もしなくても<b>次の起動から新しい版</b>になります（10章「共有フォルダから使う PC」）。ファイルを受け取って使っている PC は、新しい「アマダ生産計画抽出.html」を古いファイルと置き換えてください（ショートカットはそのまま使えます）。</td></tr>
 </tbody></table>
 </section><section class="man-sec" id="man-settings"><h3><b>11</b>設定</h3>
 <p>画面右上の<b>歯車マークの「設定」</b>ボタンを押すと、設定画面が開きます。閉じるときは「閉じる」か Esc キーを押します。</p>
@@ -2783,8 +2783,8 @@ $('manBody').addEventListener('scroll', () => {
 $('manPrint').addEventListener('click', () => {
   const css = [...document.querySelectorAll('style')].map(x => x.textContent).join('\n');
   const w = window.open('', '_blank'); if (!w) return;
-  w.document.write('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>アマダ生産計画抽出 操作マニュアル</title><style>' + css +
-    '\nhtml,body{height:auto;overflow:visible;background:#fff}.man-body{overflow:visible;padding:0 10px;background:#fff}.man-sec{break-inside:auto}.shot,.diagram,table,.flow{break-inside:avoid}.man-sec h3{break-after:avoid}@page{size:A4;margin:12mm}</style></head><body><h1 style="font-size:26px;margin:0 10px 16px">アマダ生産計画抽出　操作マニュアル（Ver 1.0）</h1><div class="man-body">' +
+  w.document.write('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>アマダ向け生産管理システム 操作マニュアル</title><style>' + css +
+    '\nhtml,body{height:auto;overflow:visible;background:#fff}.man-body{overflow:visible;padding:0 10px;background:#fff}.man-sec{break-inside:auto}.shot,.diagram,table,.flow{break-inside:avoid}.man-sec h3{break-after:avoid}@page{size:A4;margin:12mm}</style></head><body><h1 style="font-size:26px;margin:0 10px 16px">アマダ向け生産管理システム　操作マニュアル（Ver 1.0）</h1><div class="man-body">' +
     $('manBody').innerHTML + '</div></body></html>');
   w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
 });
