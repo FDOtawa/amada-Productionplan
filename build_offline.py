@@ -10,6 +10,6 @@ lib_path = sys.argv[1] if len(sys.argv) > 1 else 'node_modules/xlsx/dist/xlsx.fu
 lib = pathlib.Path(lib_path).read_text(encoding='utf-8').replace('</script', '<\\/script')
 s = s.replace(tag, '<script>' + lib + '</script>')
 im = Image.open(next(p for p in ('画像・ﾛｺﾞ/icon.ico', 'icon.ico') if os.path.exists(p))).convert('RGBA').resize((64, 64)); b = io.BytesIO(); im.save(b, 'PNG')
-s = s.replace('<title>アマダ生産計画抽出</title>', '<title>アマダ生産計画抽出</title>\n<link rel="icon" type="image/png" href="data:image/png;base64,' + base64.b64encode(b.getvalue()).decode() + '">', 1)
+s = s.replace('<title>アマダ向け生産管理システム</title>', '<title>アマダ向け生産管理システム</title>\n<link rel="icon" type="image/png" href="data:image/png;base64,' + base64.b64encode(b.getvalue()).decode() + '">', 1)
 pathlib.Path('アマダ生産計画抽出.html').write_text(s, encoding='utf-8')
 print('アマダ生産計画抽出.html を作成しました')
