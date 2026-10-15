@@ -3331,8 +3331,14 @@ function applyPage(key){
   updateStatus();
 }
 document.querySelectorAll('.tcard[data-go]').forEach(c => c.addEventListener('click', () => showPage(c.dataset.go)));
-// 確定仕様書読み解きはまだ使えないため、TOP では「工事中」。カードを押すと工事中のページ、「工事中」の印だけが隠しボタンで作業用のページへ（2026-10-15 ユーザー指示）
-$('specKey').addEventListener('click', e => { e.stopPropagation(); showPage('spec'); });
+// 確定仕様書読み解きはまだ使えないため、TOP では「工事中」。カードを押すと工事中のページ、「工事中」の印をダブルクリックしたときだけ作業用のページへ（2026-10-15 ユーザー指示）
+// 「工事中」の印は1回押しただけならカードと同じ（工事中のページ）。ダブルクリックのときだけ作業用のページへ（2026-10-15 ユーザー指示）
+let specKeyTimer = 0;
+$('specKey').addEventListener('click', e => {
+  e.stopPropagation(); clearTimeout(specKeyTimer);
+  if (e.detail >= 2) { showPage('spec'); return; }
+  specKeyTimer = setTimeout(() => showPage('specwip'), 300);
+});
 $('homeBtn').addEventListener('click', () => showPage('top'));
 $('wipBack').addEventListener('click', () => showPage('top'));
 showPage('top', true);
