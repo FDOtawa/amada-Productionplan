@@ -1155,7 +1155,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <p>レーザは土岐工場と富士宮工場で作るため、<b>2つのファイル</b>を合わせて1つの帳票にします。2つがそろっていないとエラーになります。</p>
 <ul><li><b>① ファイン電子用生産機資料</b>（土岐）：HRB 土岐と同じファイル。</li>
 <li><b>② レーザ日程表</b>（富士宮）：シート <b>EN-RI・EN-VN・OR・AAI・AESA</b> を読みます（REG・FLW1500 は使いません）。どのシートも3行目が見出し、6行目からデータです。</li>
-<li>どちらも、<b>機種名の左から2文字が「EN」「VS」「VN」の行</b>だけを使います。</li></ul>
+<li>どちらも、<b>機種名の左から2文字が「EN」「VS」「VN」の行</b>だけを使います。ただし <b>EN6225AJ・VN6225AJ</b>（.EXP などが付いたものも）は対象外です。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th><th>① 生産機資料</th><th>② レーザ日程表</th></tr></thead><tbody>
 <tr><td>製造年月</td><td>B列（202610 → 2026年10月）</td><td>A列（2026/10 → 2026年10月）</td></tr>
 <tr><td>機種名</td><td>F列</td><td>F列</td></tr>
@@ -1702,6 +1702,9 @@ function extractKoban(XLSX, ws){
 // 仕向は機種名の末尾から：EXP（.EXP も）→EXP、CE→CE、AAI→EXP（国名 米国）、何も無い→DMS（国名 日本）。AESA シートの行は機種名にかかわらず CE（国名 欧州）
 const LASER_SHEETS = ['EN-RI', 'EN-VN', 'OR', 'AAI', 'AESA'];
 const isLaserModel = m => /^(EN|VS|VN)/.test(String(m).normalize('NFKC').trim().toUpperCase());
+// 対象外の機種（2026-10-16 ユーザー指示：EN6225AJ・VN6225AJ。.EXP などの付いたものも含む）
+const LASER_EXCLUDE = [/^EN6225AJ/, /^VN6225AJ/];
+const laserExcluded = m => LASER_EXCLUDE.some(re => re.test(String(m).normalize('NFKC').replace(/\s+/g, '').toUpperCase()));
 const laserSchedSheets = wb => LASER_SHEETS.map(n => findSheet(wb, n)).filter(Boolean);
 const isLaserSched = wb => laserSchedSheets(wb).length > 0;
 function laserDest(model, aesaSheet){
@@ -1750,6 +1753,7 @@ function extractLaser(XLSX, wb){
         const model = text(r, 5); if (!model || norm(model) === '機種名') continue; // 途中の見出しの行は飛ばす
         const serial = text(r, 7);
         if (!isLaserModel(model)) { excluded.push({ row: r + 1, model, serial, reason: `シート「${n}」：機種名が EN・VS・VN ではない` }); continue; }
+        if (laserExcluded(model)) { excluded.push({ row: r + 1, model, serial, reason: `シート「${n}」：対象外の機種（EN6225AJ・VN6225AJ）` }); continue; }
         const a = at(r, 0); let month = '';
         if (a && a.v instanceof Date) month = `${a.v.getFullYear()}年${a.v.getMonth() + 1}月`;
         else { const t = norm(a ? (a.w ?? a.v) : ''), m = t.match(/^(\d{4})\D(\d{1,2})/); month = m ? `${+m[1]}年${+m[2]}月` : prodMonthLabel(t, new Date()); }
@@ -1762,6 +1766,7 @@ function extractLaser(XLSX, wb){
   } else {
     egbTokiRows(XLSX, wb).forEach(x => {
       if (!isLaserModel(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EN・VS・VN ではない' }); return; }
+      if (laserExcluded(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '対象外の機種（EN6225AJ・VN6225AJ）' }); return; }
       const dest = laserDest(x.model, false);
       rows.push({ row: x.row, sheet: x.src, src: 'toki', month: x.month, model: x.model, serial: x.serial, dest, country: laserCountry(x.model, dest, x.customer, x.g, false),
         customer: x.customer, landing: '土岐', jit: x.jit });
