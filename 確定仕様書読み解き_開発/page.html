@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="spreader.js"></script><script src="sppage.js"></script><script src="spjudge.js"></script><script src="tesseract.min.js"></script><script src="pdf.min.js"></script></head><body>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+let W = null;
+async function worker() { if (!W) W = await Tesseract.createWorker('jpn', 1, { workerPath: 'worker.min.js', corePath: 'tesseract-core-simd-lstm.wasm.js', langPath: '.', cacheMethod: 'none', gzip: true }); return W; }
+window.readPdf = async (url, pages, scale) => {
+  const buf = await (await fetch(url)).arrayBuffer(), pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise, w = await worker(), out = [];
+  const list = pages || Array.from({ length: pdf.numPages }, (_, i) => i + 1);
+  for (const n of list) {
+    const t0 = performance.now(), pg = await pdf.getPage(n), vp = pg.getViewport({ scale: scale || 3 });
+    const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await pg.render({ canvasContext: g, viewport: vp }).promise;
+    const r = await SpPage.readPage(w, c); r.page = n; r.ms = Math.round(performance.now() - t0); out.push(r);
+  }
+  return out;
+};
+</script></body></html>
