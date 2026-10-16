@@ -13,7 +13,7 @@
     for (const c of COUNTRIES) { const hit = [...c].filter(ch => t.includes(ch)).length / c.length; if (hit > bs) { bs = hit; best = c; } }
     return bs >= 0.5 ? best : t;
   }
-  const cleanName = s => String(s || '').replace(/^[^A-Za-z0-9(（【぀-ヿ一-鿿]+/, '').replace(/^[|｜!、。・ー一]+/, '').trim();
+  const cleanName = s => String(s || '').replace(/^[^A-Za-z0-9(（【぀-ヿ一-鿿]+/, '').replace(/^[|｜!、。・ー一]+/, '').replace(/^[^\x00-\x7f【(（]{1,2}(?=[【(（A-Z])/, '').replace(/[|｜]+$/, '').trim();
   function tons(model) {
     const d = (N(model).match(/^(?:HRBC|HRB|SRB)(\d{4})/) || [])[1]; if (!d) return 0;
     const two = d.slice(0, 2);
@@ -26,18 +26,21 @@
     for (const raw of dots) {
       const t = N(raw).replace(/[《〈]/g, '(').replace(/[》〉]/g, ')');
       const sp = /^[①②③④⑤⑥⑦⑧⑨⑩]/.test(raw.trim()); // 特殊仕様の行
-      if (/AS-?[0O]1/.test(t)) m.add('AS-01');
-      if (/オートクラウニング|自動クラウニング/.test(t)) m.add('自動ｸﾗｳﾆﾝｸﾞ');
-      if (/^Lシフト/.test(t) && !/脱着|ツキアテ|突き当/.test(t)) m.add('Lｼﾌﾄ');
-      if (/角度センサ/.test(t)) { if (/BI-?L/.test(t)) m.add(/2軸/.test(t) ? 'BI-L2' : 'BI-L1'); else if (/2軸/.test(t)) m.add('BI-S2'); else if (/1軸/.test(t)) m.add('BI-S1'); }
-      if (/スライドフット|自走制御|AF軸/.test(t) && !/2人|二人/.test(t)) { if (/手動/.test(t)) m.add('手動ｽﾗｲﾄﾞﾌｯﾄ'); else if (/自動|自走|AF軸/.test(t)) m.add('自動ｽﾗｲﾄﾞﾌｯﾄ'); }
+      // 制御ASSY(IO) の行は説明文（2人操作フットペダル・ロボットIFキット選択時…）が長く、ほかの OP の名前を含むので、この行は制御ASSY だけを見る
+      if (/択時/.test(t)) { if (/ASSY/.test(t)) m.add('制御ASSY(IO)'); continue; }
+      if (/AS-?[0O]1/.test(t) || /レーザ式安全/.test(t) || (/-[0O]1/.test(t) && /インター|安全/.test(t))) m.add('AS-01');
+      if (/クラウニング/.test(t) && !/手動/.test(t)) m.add('自動ｸﾗｳﾆﾝｸﾞ'); // 「オート」は「2ート」「2ュート」と読み違えることがある
+      if (/シ.?フト/.test(t) && !/脱着|ツキアテ|突き当|突当/.test(t)) m.add('Lｼﾌﾄ'); // 「しシブフト」など
+      if (/[角直]度センサ|BI-?[SL](?![A-Z])/.test(t)) { const two = /2軸|自動2/.test(t), one = /1軸|自動1/.test(t);
+        if (/BI-?L/.test(t)) m.add(two ? 'BI-L2' : 'BI-L1'); else if (two) m.add('BI-S2'); else m.add('BI-S1'); } // 軸数が読めないときは1軸
+      if (/スライドフット|自走制御|AF軸/.test(t) && !/人.{0,2}フット/.test(t)) { if (/手動/.test(t)) m.add('手動ｽﾗｲﾄﾞﾌｯﾄ'); else if (/自動|自走|AF軸/.test(t)) m.add('自動ｽﾗｲﾄﾞﾌｯﾄ'); }
       if (/ロボットI\/?F|ロボットIFキット/.test(t)) m.add('ﾛﾎﾞｯﾄI/F');
       if (/ダイリフトI\/?F/.test(t)) m.add('ﾀﾞｲﾘﾌﾄI/F');
-      if (/2人操作フット|二人フット/.test(t)) m.add('二人ﾌｯﾄ');
+      if (/人.{0,2}フット|二人フット/.test(t)) m.add('二人ﾌｯﾄ'); // 「2人操作」「2人反作」「<人作」など
       if (/20P\+?AF|2OP\+?AF/.test(t)) m.add('20P+AF');
-      if (/追従装置/.test(t)) m.add(/1548/.test(t) ? '追従装置SF1548H' : /1584/.test(t) ? '追従装置SF1584' : '追従装置SF1224');
+      if (/追従装置|SF-?1(224|548|584)/.test(t) && /SF-?1(224|548|584)/.test(t)) m.add(/1548/.test(t) ? '追従装置SF1548H' : /1584/.test(t) ? '追従装置SF1584' : '追従装置SF1224');
       if (/VC-?BOX|VFユニット/.test(t)) m.add('VFﾕﾆｯﾄ');
-      if (/制御ASSY|セイギョツイカ/.test(t)) m.add('制御ASSY(IO)');
+      if (/ASSY|セイギョツイカ/.test(t)) m.add('制御ASSY(IO)'); // 「制師ASSY(10)」など
       if (/^指定色/.test(t)) m.add('指定色');
       if (/AGRIP-?A/.test(t)) m.add('AGRIP-A');
       if (/NEWAGRIP-?S|油圧AGRIP-?S/.test(t)) m.add('AGRIP-S');
@@ -66,17 +69,21 @@
     return out;
   }
   // 1ページ → 1行（帳票に出さないページは skip）
-  function judge(p, OPS) {
+  function judge(p, opts) {
+    opts = opts && !Array.isArray(opts) ? opts : {};
     if (p.skip) return { skip: p.skip };
     const h = p.head || {}, model = N(h.model);
     if (!/^(HRBC|HRB|SRB)\d/.test(model)) return { skip: `HRB・SRB 以外（${h.model || '機種名が読めない'}）` };
-    const dest = cleanName(h.dest), contract = cleanName(h.contract), cust = dest || contract;
+    const dest = cleanName(h.dest), contract = cleanName(h.contract), aaiSer = /^AR[A-Z]\d{5}$/.test(N(h.ser)), cust = aaiSer ? 'AAI' : (dest || contract);
     if (/AESA/.test(N(dest)) || (!dest && /AESA/.test(N(contract)))) return { skip: '納入先が AESA' };
     const t = tons(model), srb = model.startsWith('SRB');
     const kind = srb ? (t >= 220 ? 'SRB中型' : 'SRB小型') : t >= 350 ? 'HRB大型' : t === 220 ? 'HRB中型' : 'HRB小型';
-    const cn = country(h.country), cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
+    // 国名が読めないときは、客先名（納入先・契約先）から探す（アプリの countryOf）
+    let cn = country(h.country);
+    if (!COUNTRIES.includes(cn) && opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || cn;
+    const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
     const shimuke = cn === '日本' ? 'DMS' : (srb && EU.has(cn)) ? 'CE' : 'EXP';
-    const aai = /^AAI$/.test(N(cust).replace(/[^A-Z]/g, '')) || N(cust) === 'AAI';
+    const aai = aaiSer || N(cust) === 'AAI';
     const name = `${model} ${shimuke}` + (aai ? ' AAI' : '');
     const m = marks(p.dots || []), atc = /ATC/.test(model), small = kind === 'HRB小型', mid = kind === 'HRB中型', large = kind === 'HRB大型';
     const f = {};
@@ -107,7 +114,10 @@
     const biko = [];
     if (mismatch(p.notes, m).length) biko.push('ｱﾝﾏｯﾁ有');
     if (m.has('追従装置SF1584')) biko.push('追従装置SF1584 選択あり');
-    return { ym: h.ym, name, ser: h.ser, shimuke, country: cnOut, cust, kind, f, biko: biko.join('・'), marks: [...m] };
+    // シリアルの頭の数字を落として7桁に読んだとき：シリアルの左2桁はトン数（10＝100t、13＝130t…）なので補う
+    let ser = h.ser; const code = { 50: '50', 80: '80', 100: '10', 130: '13', 220: '22', 350: '35', 600: '60' }[t];
+    if (/^\d{7}$/.test(ser || '') && code && ser[0] === code[1] && !ser.startsWith(code)) ser = code[0] + ser;
+    return { ym: h.ym, name, ser, shimuke, country: cnOut, cust, kind, f, biko: biko.join('・'), marks: [...m] };
   }
   G.SpJudge = { judge, country, tons, marks };
 })(window);
