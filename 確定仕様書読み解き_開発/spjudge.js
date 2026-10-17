@@ -29,7 +29,7 @@
       // 制御ASSY(IO) の行は説明文（2人操作フットペダル・ロボットIFキット選択時…）が長く、ほかの OP の名前を含むので、この行は制御ASSY だけを見る
       if (/択時/.test(t)) { if (/ASSY/.test(t)) m.add('制御ASSY(IO)'); continue; }
       if (/AS-?[0O]1/.test(t) || /レーザ式安全/.test(t) || (/-[0O]1/.test(t) && /インター|安全/.test(t))) m.add('AS-01');
-      if (/クラウニング/.test(t) && !/手動/.test(t)) m.add('自動ｸﾗｳﾆﾝｸﾞ'); // 「オート」は「2ート」「2ュート」と読み違えることがある
+      if (/クラウ|[ウワ]ニング/.test(t) && !/手動/.test(t)) m.add('自動ｸﾗｳﾆﾝｸﾞ'); // 「オート」→「2ート」、「クラウ」→「クフラワ」と読み違えることがある
       if (/シ.?フト/.test(t) && !/脱着|ツキアテ|突き当|突当/.test(t)) m.add('Lｼﾌﾄ'); // 「しシブフト」など
       if (/[角直]度センサ|BI-?[SL](?![A-Z])/.test(t)) { const two = /2軸|自動2/.test(t), one = /1軸|自動1/.test(t);
         if (/BI-?L/.test(t)) m.add(two ? 'BI-L2' : 'BI-L1'); else if (two) m.add('BI-S2'); else m.add('BI-S1'); } // 軸数が読めないときは1軸
