@@ -1056,6 +1056,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <tr><td>小型機（アマダ生産月が2026年12月まで）</td><td>富士宮</td></tr>
 <tr><td>小型機（2027年1月から）</td><td>土岐</td></tr>
 <tr><td>LD盤</td><td>標準機／小型機</td><td>富士宮／土岐</td></tr></tbody></table>
+<div class="tip"><b>AESA シートから抜き出した行は、小型機でもすべて「富士宮」</b>に納入します（ATC盤・LC盤・LD盤とも）。</div>
 <h4>JIT日</h4>
 <p><b>制御盤JIT日</b>（機械の J列＝着手日）を起点に、<b>営業日</b>でさかのぼります。</p>
 <table class="mt"><thead><tr><th>盤</th><th>JIT日（初期値）</th></tr></thead><tbody>
@@ -1066,6 +1067,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <h4>AESA シート</h4>
 <ul><li>A列のシリアルは「TS」を消さず、そのまま使います（例：EGRE6037）。</li>
 <li>JIT日と制御盤JIT日は、どちらも J列（着手日）です。</li>
+<li>納入先は、小型機でも<b>すべて「富士宮」</b>です。</li>
 <li>客先名は「AESA」、国名は「欧州」です。ロボットは AESA シートの EGBROBOT から、種類と下3桁で探します（例：EGRE6037 ↔ EGRB1037）。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th></tr></thead><tbody><tr><td>アマダ生産月／機種名／メカシリアル／ロボットシリアル／仕向／国名／客先名／納入先／JIT日／制御盤JIT日／K数</td></tr></tbody></table>
 <h4>行の色分け（網掛け）</h4>
@@ -2144,7 +2146,7 @@ function extractEGBSub(XLSX, wb){
     const month = x.month || prodMonthLabel(x.monthRaw, runDate), ym = labelYM(month), ctrlJit = x.jit !== undefined ? x.jit : toDate(x.jitRaw); // 生産機資料の行は month・jit（日付か「未定」）を持つ
     const country = dest === 'DMS' ? '日本' : (countryOf(x.customer) || (x.g !== undefined ? tokiCountryOfG(x.g) : '') || (isAESA || String(x.customer).normalize('NFKC').toUpperCase().trim() === 'AESA' ? '欧州' : '')); // AESA シートの行と、客先名が「AESA」だけの行は欧州（2026-10-13 ユーザー指示）
     (EGB_PANELS[form] || []).forEach(panel => {
-      const shipTo = egbShipTo(panel, model, dest, kind, ym);
+      const shipTo = isAESA ? '富士宮' : egbShipTo(panel, model, dest, kind, ym); // AESA シートから抜き出した行は、小型機でも富士宮へ納入（2026-10-22 ユーザー指示）
       const jit = isAESA ? ctrlJit : ctrlJit instanceof Date ? businessDaysBefore(ctrlJit, egbSubDays(panel, shipTo)) : (ctrlJit || null); // AESA は JIT日＝制御盤JIT日＝J列。生産機資料の「未定」はそのまま
       rows.push({ row: x.row, sheet: x.src, from: toki ? 'toki' : 'taihi', panel, aesa: isAESA, month, model: (isAESA ? x.model : model) + `(${panel})`, serial: x.serial,
         robot: panel === 'ATC盤' ? '' : (robot ? robot.serial : ''), dest, country, customer: isAESA ? 'AESA' : x.customer, shipTo, jit, ctrlJit, // AESA シートの客先名は「AESA」一択（2026-10-13 ユーザー指示）
