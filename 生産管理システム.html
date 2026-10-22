@@ -1181,7 +1181,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <p>レーザは土岐工場と富士宮工場で作るため、<b>2つのファイル</b>を合わせて1つの帳票にします。2つがそろっていないとエラーになります。</p>
 <ul><li><b>① ファイン電子用生産機資料</b>（土岐）：HRB 土岐と同じファイル。</li>
 <li><b>② レーザ日程表</b>（富士宮）：シート <b>EN-RI・EN-VN・OR・AAI・AESA</b> を読みます（REG・FLW1500 は使いません）。どのシートも3行目が見出し、6行目からデータです。</li>
-<li>どちらも、<b>機種名の左から2文字が「EN」「VS」「VN」の行</b>だけを使います。ただし <b>EN6225AJ・VN6225AJ</b>（.EXP などが付いたものも）は対象外です。</li></ul>
+<li>どちらも、<b>機種名の左から2文字が「EN」「VS」「VN」「OR」の行</b>だけを使います。ただし <b>EN6225AJ・VN6225AJ</b>（.EXP などが付いたものも）は対象外です。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th><th>① 生産機資料</th><th>② レーザ日程表</th></tr></thead><tbody>
 <tr><td>製造年月</td><td>B列（202610 → 2026年10月）</td><td>A列（2026/10 → 2026年10月）</td></tr>
 <tr><td>機種名</td><td>F列</td><td>F列</td></tr>
@@ -2053,12 +2053,13 @@ function extractKoban(XLSX, ws){
 }
 
 // 「レーザ」（2026-10-14 ユーザー指示）：レーザは土岐・富士宮工場で作るため、2つのファイルを合わせる（2つそろわないとエラー）
-// ①ファイン電子用生産機資料（土岐）：F列の機種名の左2文字が EN・VS・VN の行。製造年月＝B列、機種名＝F、シリアル＝H、引き当て先＝I、国名は I列→G列、JIT日＝J列（日付以外は「未定」）、着地＝土岐
+// ①ファイン電子用生産機資料（土岐）：F列の機種名の左2文字が EN・VS・VN・OR の行。製造年月＝B列、機種名＝F、シリアル＝H、引き当て先＝I、国名は I列→G列、JIT日＝J列（日付以外は「未定」）、着地＝土岐
 // ②レーザ日程表（富士宮）：シート EN-RI・EN-VN・OR・AAI・AESA（REG・FLW1500 は使わない）。3行目が見出し、6行目から。製造年月＝A列、機種名＝F、シリアル＝H、
 //   引き当て先＝I、国名は I列→L列、JIT日＝T列（着手日）、着地＝AAI シート→AAI/平井、AESA シート→AESA/平井、ほかのシート→富士宮
 // 仕向は機種名の末尾から：EXP（.EXP も）→EXP、CE→CE、AAI→EXP（国名 米国）、何も無い→DMS（国名 日本）。AESA シートの行は機種名にかかわらず CE（国名 欧州）
 const LASER_SHEETS = ['EN-RI', 'EN-VN', 'OR', 'AAI', 'AESA'];
-const isLaserModel = m => /^(EN|VS|VN)/.test(String(m).normalize('NFKC').trim().toUpperCase());
+// 2026-10-22 ユーザー指示：OR を追加
+const isLaserModel = m => /^(EN|VS|VN|OR)/.test(String(m).normalize('NFKC').trim().toUpperCase());
 // 対象外の機種（2026-10-16 ユーザー指示：EN6225AJ・VN6225AJ。.EXP などの付いたものも含む）
 const LASER_EXCLUDE = [/^EN6225AJ/, /^VN6225AJ/];
 const laserExcluded = m => LASER_EXCLUDE.some(re => re.test(String(m).normalize('NFKC').replace(/\s+/g, '').toUpperCase()));
@@ -2109,7 +2110,7 @@ function extractLaser(XLSX, wb){
       for (let r = 5; r <= range.e.r; r++) {
         const model = text(r, 5); if (!model || norm(model) === '機種名') continue; // 途中の見出しの行は飛ばす
         const serial = text(r, 7);
-        if (!isLaserModel(model)) { excluded.push({ row: r + 1, model, serial, reason: `シート「${n}」：機種名が EN・VS・VN ではない` }); continue; }
+        if (!isLaserModel(model)) { excluded.push({ row: r + 1, model, serial, reason: `シート「${n}」：機種名が EN・VS・VN・OR ではない` }); continue; }
         if (laserExcluded(model)) { excluded.push({ row: r + 1, model, serial, reason: `シート「${n}」：対象外の機種（EN6225AJ・VN6225AJ）` }); continue; }
         const a = at(r, 0); let month = '';
         if (a && a.v instanceof Date) month = `${a.v.getFullYear()}年${a.v.getMonth() + 1}月`;
@@ -2122,7 +2123,7 @@ function extractLaser(XLSX, wb){
     });
   } else {
     egbTokiRows(XLSX, wb).forEach(x => {
-      if (!isLaserModel(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EN・VS・VN ではない' }); return; }
+      if (!isLaserModel(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '機種名が EN・VS・VN・OR ではない' }); return; }
       if (laserExcluded(x.model)) { excluded.push({ row: x.row, model: x.model, serial: x.serial, reason: '対象外の機種（EN6225AJ・VN6225AJ）' }); return; }
       const dest = laserDest(x.model, false);
       rows.push({ row: x.row, sheet: x.src, src: 'toki', month: x.month, model: x.model, serial: x.serial, dest, country: laserCountry(x.model, dest, x.customer, x.g, false),
@@ -2828,7 +2829,7 @@ const PROCESSORS = {
     noMarkNote: n => '',
     emptyMsg: '抽出できる行がありませんでした。HRB 土岐・HRB KD・HRB 大型・HRB ATC盤 の元ファイルを取り込んでください。',
   },
-  'レーザ': { // 2026-10-14：生産機資料（土岐）とレーザ日程表（富士宮）を合わせる。機種名の左2文字が EN・VS・VN
+  'レーザ': { // 2026-10-14：生産機資料（土岐）とレーザ日程表（富士宮）を合わせる。機種名の左2文字が EN・VS・VN・OR
     book: true,
     sortKey: 'jit', // JIT日の早い順。「未定」は最後に元の表の順で
     earliestYM: true,
@@ -2840,7 +2841,7 @@ const PROCESSORS = {
       { key: 'country', label: '国名' }, { key: 'customer', label: '引き当て先', wrap: true }, { key: 'landing', label: '着地' }, { key: 'jit', label: 'JIT日', date: true }],
     outName: 'レーザ',
     noMarkNote: n => '',
-    emptyMsg: '抽出できる行がありませんでした。機種名が EN・VS・VN の行があるか確認してください。',
+    emptyMsg: '抽出できる行がありませんでした。機種名が EN・VS・VN・OR の行があるか確認してください。',
   },
   '小板発振器': { // 2026-10-14：「ファイン電子用生産機資料」から PRE・BRE（小板のレーザ）を抜き出す
     allSheets: true,
