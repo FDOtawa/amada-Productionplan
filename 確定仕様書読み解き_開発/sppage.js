@@ -7,6 +7,7 @@
     const c = document.createElement('canvas'), g = c.getContext('2d');
     if (deg % 180) { c.width = cv.height; c.height = cv.width; } else { c.width = cv.width; c.height = cv.height; }
     g.translate(c.width / 2, c.height / 2); g.rotate(deg * Math.PI / 180); g.drawImage(cv, -cv.width / 2, -cv.height / 2);
+    g.setTransform(1, 0, 0, 1, 0, 0); // 回転の設定を戻す（残すと、あとで描く印が回った位置に出る。2026-10-24）
     return c;
   }
   function analyzeGrid(cv) {
@@ -118,7 +119,20 @@
     const mr = R.rows(img, lines, main), tableRight = mr.length ? Math.max(...mr.map(r => r.lx1)) : cv.width / 2;
     const ny = Math.round(gy + (cv.height - gy) * (form === 'landscape' ? 0.25 : 0.4));
     const notes = (await ocrText(worker, R.eraseLines(cv, img, lv, tableRight + 6 * k1, ny, fR - 4 * k1, cv.height - 30 * k1, 2 / k1 * 1.3), 6)).t;
-    return { head, dots, notes, rotated: cv !== cv0, form };
+    // 印を付けるための位置（2026-10-24 ユーザー指示：読み解き済みの PDF に、実装の行を黄色で塗り、条件で付けた OP を赤字で書く）
+    // rows：● の行（dots と同じ順）のオプション名の欄（行の中の最初の区切り線まで）／slots：オプションの表の最終行のあとの空いた行
+    // 欄の区切り線は行の上端から下端までつながっている（文字の縦線は上下に余白がある）ので、ほぼ全部が黒い縦の列を区切り線とみなす
+    const nameRight = r => { for (let x = Math.round(r.lx0 + 40 * k1); x < r.lx1 - 4; x++) if (R.dark(img, x, r.y0 + 1, x + 1, r.y1 - 1) > 0.95 || R.dark(img, x - 1, r.y0 + 1, x + 2, r.y1 - 1) > 0.9) return x; return r.lx1; };
+    const inkOf = r => R.dark(img, r.lx0 + 6 * k1, r.y0 + 4, Math.min(r.lx1, r.lx0 + 600 * k1) - 6 * k1, r.y1 - 4);
+    let lastUsed = -1; mr.forEach((r, i) => { if (inkOf(r) > 0.004) lastUsed = i; });
+    const geom = {
+      w: cv.width, h: cv.height,
+      rows: dotRows.map(r => ({ x0: r.lx0, y0: r.y0, x1: nameRight(r), y1: r.y1 })),
+      slots: mr.slice(lastUsed + 1).map(r => ({ x0: r.lx0, y0: r.y0, x1: r.lx1, y1: r.y1 })),
+      rowH: mr.length ? mr.map(r => r.y1 - r.y0).sort((a, b) => a - b)[mr.length >> 1] : 26 * k1,
+      bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL,
+    };
+    return { head, dots, notes, rotated: cv !== cv0, form, geom, canvas: opts.keepCanvas ? cv : undefined };
   }
   G.SpPage = { readPage, rotate };
 })(window);
