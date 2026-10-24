@@ -110,10 +110,17 @@
     for (const g of groups) for (const r of R.rows(img, lines, g)) if (r.dot) dotRows.push(r);
     // 確定仕様書の ● は多くても40ほど。それより多いのは様式の違うページ（読むと時間がかかりすぎる）
     if (dotRows.length > 80) return { skip: `確定仕様書の様式ではない（●が${dotRows.length}個）`, head, form };
+    // オプション名の欄の右端：欄の区切り線は行の上端から下端までつながっている（文字の縦線は上下に余白がある）ので、ほぼ全部が黒い縦の列を区切り線とみなす
+    const nameRight = r => { for (let x = Math.round(r.lx0 + 40 * k1); x < r.lx1 - 4; x++) if (R.dark(img, x, r.y0 + 1, x + 1, r.y1 - 1) > 0.95 || R.dark(img, x - 1, r.y0 + 1, x + 2, r.y1 - 1) > 0.9) return x; return r.lx1; };
+    // HG の様式（2026-10-24）：行全体を読むと読み違いが多いので、オプション名の欄だけを3倍に拡大して1行として読む（HRB は右の欄に SF1224 などがあるので行全体のまま）
+    const hg = /^HG\d/.test(N(head.model).toUpperCase());
+    const nameCanvas = (r, sc) => { const x1 = nameRight(r), W = Math.max(4, x1 - r.lx0 - 4), H = Math.max(4, r.y1 - r.y0 - 2), c = document.createElement('canvas');
+      c.width = Math.round(W * sc); c.height = Math.round(H * sc); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = true;
+      g.drawImage(cv, r.lx0 + 2, r.y0 + 1, W, H, 0, 0, c.width, c.height); return c; };
     // 横向きの様式は行が細く文字が小さいので、大きめに拡大して読む（2026-10-22）
     const dotScale = form === 'landscape' ? 3 : 2;
     for (const r of dotRows) {
-      dots.push((await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, dotScale), 6)).t);
+      dots.push(hg ? (await ocrText(worker, nameCanvas(r, 3), 7)).t : (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, dotScale), 6)).t);
     }
     // 備考・製造指示追記情報：表の右側の下半分を読む（横向きの様式は「製造指示追記情報」が表の右の真ん中あたりにあるので、上の 1/4 から）
     const mr = R.rows(img, lines, main), tableRight = mr.length ? Math.max(...mr.map(r => r.lx1)) : cv.width / 2;
@@ -121,8 +128,6 @@
     const notes = (await ocrText(worker, R.eraseLines(cv, img, lv, tableRight + 6 * k1, ny, fR - 4 * k1, cv.height - 30 * k1, 2 / k1 * 1.3), 6)).t;
     // 印を付けるための位置（2026-10-24 ユーザー指示：読み解き済みの PDF に、実装の行を黄色で塗り、条件で付けた OP を赤字で書く）
     // rows：● の行（dots と同じ順）のオプション名の欄（行の中の最初の区切り線まで）／slots：オプションの表の最終行のあとの空いた行
-    // 欄の区切り線は行の上端から下端までつながっている（文字の縦線は上下に余白がある）ので、ほぼ全部が黒い縦の列を区切り線とみなす
-    const nameRight = r => { for (let x = Math.round(r.lx0 + 40 * k1); x < r.lx1 - 4; x++) if (R.dark(img, x, r.y0 + 1, x + 1, r.y1 - 1) > 0.95 || R.dark(img, x - 1, r.y0 + 1, x + 2, r.y1 - 1) > 0.9) return x; return r.lx1; };
     // 行の記入の量：欄の区切り線（縦にほぼ全部が黒い列）は数えない（空いた行でも区切り線があると「記入あり」に見えていた。2026-10-24）
     const inkOf = r => {
       const x0 = Math.round(r.lx0 + 6 * k1), x1 = Math.round(Math.min(r.lx1, r.lx0 + 600 * k1) - 6 * k1), y0 = Math.round(r.y0 + 4), y1 = Math.round(r.y1 - 4), hgt = Math.max(1, y1 - y0);
@@ -134,24 +139,36 @@
     // 赤字を書く起点（2026-10-24 ユーザー指示）：OP の記載の最後の項目「別紙仕様書」の行。表ごとに最後に記入のある行を読んで探す
     // （ATC の様式は「別紙仕様書」が右の表にある＝左の表の下に書くと枠の外にはみ出していた。見つからない様式はオプションの表の最終行のあと）
     let anchor = null; const tried = [];
-    // 表の下から上へ、記入のありそうな行を読み、文字が読めた最初の行を「最後の項目」とする（スキャンの薄い汚れを記入と見誤ることがあるため。読むのは1つの表で6行まで）
+    // 赤字を書く場所の候補（areas）：列の組（表）ごとに、項目の最後の行と、その下の空きの下端。
+    // 「別紙仕様書」のある表（anchor）では、「別紙仕様書」から下に続く項目（HG の海外向けはスペアパーツ）の最後のあとに書き、次に記入のある行（注意書きの囲みなど）の手前までを使う。
+    // 記入のある行：区切り線を除いた黒の量が 1% より多い行（文字が読めなくても項目とみなす。①〜⑤の空いた特殊仕様の行など）。「別紙仕様書」は表の下から16行まで読んで探す
+    const areas = [];
     for (const g of groups) {
-      const cand = R.rows(img, lines, g).filter(r => inkOf(r) > 0.004).reverse().slice(0, 6);
-      for (const last of cand) {
-        const t = (await ocrText(worker, R.cellCanvas(cv, img, last.lx0, last.y0 + k1, Math.min(last.lx1, last.lx0 + 300 * k1), last.y1 - k1, 2), 6)).t;
-        tried.push({ kx: Math.round(g.kx0), y0: Math.round(last.y0), y1: Math.round(last.y1), t });
-        if (t.replace(/[^一-鿿぀-ヿA-Za-z0-9]/g, '').length < 2) continue; // 文字が読めない行（汚れ・空いた行）は飛ばす
-        if (/別紙|紙仕様/.test(t)) anchor = { x0: last.lx0, y0: last.y0, x1: last.lx1, y1: last.y1 };
-        break;
+      // 行の左端（項目名の書き始め）の黒さも見る：特殊仕様の①〜⑤のように文字が小さい行も項目として数える
+      const inkLeft = r => R.dark(img, r.lx0 + 4 * k1, r.y0 + 4, r.lx0 + 60 * k1, r.y1 - 4);
+      const rs = R.rows(img, lines, g), ink = rs.map(r => inkOf(r) > 0.01 || inkLeft(r) > 0.012);
+      const lastInk = ink.lastIndexOf(true); if (lastInk < 0) continue;
+      let b = -1, n = 0;
+      for (let i = rs.length - 1; i >= 0 && n < 16; i--) {
+        if (!ink[i]) continue; n++;
+        // 横向きの様式は文字が小さいので、項目名の欄だけを3倍にして1行として読む（HG の「別紙仕様書」を読み違えていた）
+        const r = rs[i], t = form === 'landscape' ? (await ocrText(worker, nameCanvas(r, 3), 7)).t
+          : (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, Math.min(r.lx1, r.lx0 + 300 * k1), r.y1 - k1, 2), 6)).t;
+        tried.push({ kx: Math.round(g.kx0), y0: Math.round(r.y0), y1: Math.round(r.y1), t });
+        if (/別紙|紙仕様/.test(t)) { b = i; break; }
       }
-      if (anchor) break;
+      let e = lastInk, lim = g.y1;
+      if (b >= 0) { e = b; while (e + 1 < rs.length && ink[e + 1]) e++; const nx = ink.indexOf(true, e + 1); if (nx >= 0) lim = rs[nx].y0; }
+      const a = { x0: rs[e].lx0, y0: rs[e].y0, x1: rs[e].lx1, y1: rs[e].y1, bottom: lim };
+      areas.push(a);
+      if (b >= 0 && !anchor) anchor = a;
     }
     const geom = {
       w: cv.width, h: cv.height,
       rows: dotRows.map(r => ({ x0: r.lx0, y0: r.y0, x1: nameRight(r), y1: r.y1 })),
       slots: mr.slice(lastUsed + 1).map(r => ({ x0: r.lx0, y0: r.y0, x1: r.lx1, y1: r.y1 })),
       rowH: mr.length ? mr.map(r => r.y1 - r.y0).sort((a, b) => a - b)[mr.length >> 1] : 26 * k1,
-      bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL, anchor, tried, // tried：「別紙仕様書」を探して読んだ行（確認用）
+      bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL, anchor, areas, tried, // tried：「別紙仕様書」を探して読んだ行（確認用）
     };
     return { head, dots, notes, rotated: cv !== cv0, form, geom, canvas: opts.keepCanvas ? cv : undefined };
   }

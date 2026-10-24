@@ -29,14 +29,20 @@
     for (const i of pl.hl) { const r = geom.rows[i]; if (r) g.fillRect(r.x0 + 2, r.y0 + 2, r.x1 - r.x0 - 4, r.y1 - r.y0 - 3); }
     g.restore();
     if (!pl.cond.length) return;
-    // 赤字（2026-10-24 ユーザー指示）：「別紙仕様書」の行（無ければオプションの表の最終行）から1行あけて、1行に1つずつ。
+    // 赤字（2026-10-24 ユーザー指示）：「別紙仕様書」のある表の最後の項目から1行あけて、1行に1つずつ。
     // 文字は2行分くらいの大きさ（マス目には合わせない）。黄色の蛍光ペンも塗る
-    const fs = Math.round(hh * 1.5), lh = hh * 2, a = geom.anchor, s0 = geom.slots[0];
-    const x = (a ? a.x0 : s0 ? s0.x0 : geom.left) + Math.round(hh * 0.3);
-    const top = a ? a.y1 + hh : (s0 ? s0.y0 : geom.bottom) + hh;
+    const fs = Math.round(hh * 1.5), lh = hh * 2, s0 = geom.slots[0];
     g.font = `bold ${fs}px "BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif`; g.textBaseline = 'middle';
+    // 書く場所：「別紙仕様書」のある表に入りきればそこ。無い・入りきらないときは、最後の項目のあとに入りきる表（左から順）。どれにも入りきらなければ空きのいちばん大きい表
+    const fits = a => a && a.bottom - (a.y1 + hh) >= pl.cond.length * lh - 2;
+    const areas = (geom.areas || []).slice().sort((p, q) => p.x0 - q.x0);
+    let a = fits(geom.anchor) ? geom.anchor : areas.find(fits);
+    if (!a && geom.anchor) a = geom.anchor;
+    if (!a && areas.length) a = areas.slice().sort((p, q) => (q.bottom - q.y1) - (p.bottom - p.y1))[0];
+    const x = (a ? a.x0 : s0 ? s0.x0 : geom.left) + Math.round(hh * 0.3);
+    const top = a ? a.y1 + hh : (s0 ? s0.y0 : geom.bottom) + hh, bottom = a && a.bottom - top >= lh ? a.bottom : cv.height - 4;
     // 下に入りきらないときは落とさず、右の列に続ける
-    const per = Math.max(1, Math.floor((cv.height - 4 - top) / lh)), colW = Math.max(...pl.cond.map(t => g.measureText(t).width)) + hh * 1.5;
+    const per = Math.max(1, Math.floor((bottom - top) / lh)), colW = Math.max(...pl.cond.map(t => g.measureText(t).width)) + hh * 1.5;
     pl.cond.forEach((t, j) => {
       const xx = x + Math.floor(j / per) * colW, y0 = top + (j % per) * lh, y1 = y0 + lh;
       const w = g.measureText(t).width, pad = Math.round(hh * 0.15);

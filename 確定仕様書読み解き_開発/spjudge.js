@@ -122,5 +122,65 @@
     if (/^\d{7}$/.test(ser || '') && code && ser[0] === code[1] && !ser.startsWith(code)) ser = code[0] + ser;
     return { ym: h.ym, name, ser, shimuke, country: cnOut, cust, kind, f, biko: biko.join('・'), marks: [...m] };
   }
-  G.SpJudge = { judge, country, tons, marks };
+  // ===== HG の確定仕様書（2026-10-24 ユーザー提供「HG確定仕様書読み解き.xlsx」の OP一覧と、懸案一覧の正解）=====
+  // ● の行の項目名（オプション名の欄だけを読んだもの）から HG の印を作る
+  function marksHG(dots) {
+    const m = new Set();
+    for (const raw of dots) {
+      const t = N(raw).replace(/[《〈]/g, '(').replace(/[》〉]/g, ')');
+      if (/AS-?[0O&]1|レーザ式安全/.test(t)) m.add(/オプション/.test(t) ? 'AS-01(OP)' : 'AS-01'); // 「オプション」の記載が無ければ AS-01 標準（正解№1）
+      if (/[ピビ]ルツ|PSEN|P-?SEN|SENV/.test(t)) m.add('Psen-vip');
+      if (/センサ|ンサー/.test(t) && /B[I1L\[]?-?[SL5]|BI|BS/.test(t) && !/ワーク/.test(t)) { // 角度センサー Bi-S／Bi-L 自動1軸・2軸（Bi-S と Bi-L を間違えない）
+        const L = /B[I1\[]?-?L/.test(t), two = /2軸|自動2|自.{0,2}2/.test(t);
+        m.add((L ? 'Bi-L' : 'Bi-S') + (two ? '2' : '1'));
+      }
+      if (/^.{0,3}L[EFI][D5O0]/.test(t) && !/ライト/.test(t)) m.add('LED'); // 「LED照明」（「LE5急明」「LFD」などと読み違える）
+      if ((/シ[フブプジ]|[シジ][フブプ]ト|L軸シ/.test(t)) && !/脱着|突き?当|ツキアテ|用|リバー|シブル/.test(t)) m.add('Lシフト'); // 「Lシジブト」「Lシプト」「Lジフト」など（「リバーシブル」は除く）
+      if (/スライド/.test(t) && /[フブ]ット/.test(t) && /自動|自走/.test(t) && !/手動/.test(t)) m.add('自動ｽﾗｲﾄﾞﾌｯﾄ'); // 「フットペダル 自動スライドフットペダル」「スライドフットペダル 自動(別置き…)」（正解№2）
+      if (/[2二]人/.test(t) && /[フブ]ット|ペダル|ベダル/.test(t)) m.add('2人フット');
+      if (/ワークセンサ/.test(t)) m.add('ワークセンサ'); // 3段（突き当て標準・先端段差・キット）のどれか
+      if (/SF-?1224|1224TL|1224IL/.test(t)) m.add('SF1224TL');
+      if (/ハイボディ/.test(t)) m.add('ハイボディ');
+      if (/VC-?BOX|VCBOX/.test(t)) m.add('VC-BOX');
+      if (/A-?KAS/.test(t)) m.add('A-KAS');
+      if (/両手/.test(t)) m.add('両手操作');
+    }
+    return m;
+  }
+  function judgeHG(p, opts) {
+    opts = opts || {};
+    if (p.skip) return { skip: p.skip };
+    const h = p.head || {}, model = N(h.model).toUpperCase();
+    if (!/^HG\d/.test(model)) return { skip: `HG 以外（${h.model || '機種名が読めない'}）` };
+    const dest = cleanName(h.dest), contract = cleanName(h.contract), cust = dest || contract;
+    if (/AESA/.test(N(dest)) || (!dest && /AESA/.test(N(contract)))) return { skip: '納入先が AESA' };
+    // 国名：HG は客先名から国が分かるときは客先名を使う（正解№9：22404203 は客先 AMADA CANADA なのに国名の欄が「米国」＝確定仕様書の誤り）
+    let cn = '';
+    if (opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || '';
+    if (!cn) { cn = country(h.country); if (!COUNTRIES.includes(cn) && h.country2 && COUNTRIES.includes(country(h.country2))) cn = country(h.country2); }
+    const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
+    const shimuke = cn === '日本' ? 'DMS' : 'EXP';
+    const name = `${model} ${shimuke}`; // HG は AAI を付けない（正解№16）
+    const digits = (model.match(/^HG(\d+)/) || [])[1] || '', mid = /^(17|22)/.test(digits), t50 = /^50/.test(digits); // HG17・HG22 は中型、ほかは小型（正解№14）
+    const sfx = model.slice(2 + digits.length), robot = /AR[SM]/.test(sfx), atcR = /ATC|R/.test(sfx); // 機種名の数字の後ろ（ATC・ARS・ARM・RM など）
+    const m = marksHG(p.dots || []), f = {};
+    const as01 = m.has('AS-01') || m.has('AS-01(OP)'), psen = m.has('Psen-vip'), safety = as01 || psen;
+    // Y化・B&R：生産計画抽出の HG 備考と同じく、シリアルの下から4桁目（8＝B&R、ほか＝Y化。正解№7）
+    const ser = String(h.ser || ''), d4 = ser.length >= 4 ? ser[ser.length - 4] : '', br = d4 === '8';
+    f[1] = m.has('Bi-S1'); f[2] = m.has('Bi-S2'); f[3] = m.has('Bi-L1'); f[4] = m.has('Bi-L2');
+    const len4 = digits.slice(-1) === '4'; // LED：機種名の最後の数字が 4 なら 4m、ほか（3 など）は 3m（正解№8）
+    f[5] = m.has('LED') && !len4; f[6] = m.has('LED') && len4;
+    f[7] = m.has('Lシフト'); f[8] = m.has('自動ｽﾗｲﾄﾞﾌｯﾄ'); f[9] = m.has('ワークセンサ');
+    f[10] = m.has('自動ｽﾗｲﾄﾞﾌｯﾄ') && m.has('2人フット'); // 自動スライドフット＋2人操作フットペダルで OP（単体では付かない）
+    f[11] = psen; f[12] = robot; f[13] = m.has('AS-01'); f[14] = m.has('AS-01(OP)');
+    f[15] = !safety && !br; f[16] = !safety && br && !/ARM|ARS|RM|ATC/.test(sfx); // 安全装置（AS-01・Psen-vip）が無いときだけ（正解№5）
+    f[17] = m.has('SF1224TL') && !(t50 && shimuke === 'DMS'); f[18] = m.has('SF1224TL') && t50 && shimuke === 'DMS';
+    f[22] = psen || /ARS|ARM|RM|ATC/.test(sfx); f[20] = !f[22]; // PSS：Psen-vip か機種名 ARS/ARM/RM/ATC ならオプション、ほかは標準
+    f[23] = mid && m.has('VC-BOX') && (psen || /ATC|R/.test(sfx)) && shimuke === 'DMS';
+    f[24] = !!h.tok; f[25] = m.has('ハイボディ') && !atcR; f[26] = m.has('A-KAS'); f[27] = m.has('両手操作');
+    // シリアルの頭の数字を落として7桁に読んだときは、機種名の頭の2桁で補う（HG2204 → 22…）
+    let s2 = h.ser; if (/^\d{7}$/.test(s2 || '') && digits.length >= 2 && s2[0] === digits[1] && !s2.startsWith(digits.slice(0, 2))) s2 = digits[0] + s2;
+    return { ym: h.ym, name, ser: s2, shimuke, country: cnOut, cust, kind: mid ? 'HG中型' : 'HG小型', f, biko: '', marks: [...m] };
+  }
+  G.SpJudge = { judge, judgeHG, country, tons, marks, marksHG };
 })(window);

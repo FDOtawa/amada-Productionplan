@@ -1,0 +1,290 @@
+[
+ {
+  "no": 1,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "Bi-S自動1軸",
+  "cond1": "HG全機種共通",
+  "names": [
+   "角度センサー　Bi-S　自動1軸",
+   "Bi-S　自動1軸"
+  ],
+  "note": null
+ },
+ {
+  "no": 2,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "Bi-S自動2軸",
+  "cond1": "HG全機種共通",
+  "names": [
+   "角度センサー　Bi-S　自動2軸",
+   "Bi-S　自動2軸"
+  ],
+  "note": null
+ },
+ {
+  "no": 3,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "Bi-L自動1軸",
+  "cond1": "HG全機種共通",
+  "names": [
+   "角度センサー　Bi-L　自動1軸",
+   "Bi-S　自動1軸"
+  ],
+  "note": null
+ },
+ {
+  "no": 4,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "Bi-L自動2軸",
+  "cond1": "HG全機種共通",
+  "names": [
+   "角度センサー　Bi-L　自動2軸",
+   "Bi-S　自動2軸"
+  ],
+  "note": null
+ },
+ {
+  "no": 5,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG LED OP(3m)",
+  "cond1": "ｼﾘｱﾙ「HG〇〇4」以外の時",
+  "names": [
+   "LED照明"
+  ],
+  "note": null
+ },
+ {
+  "no": 6,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG LED OP(4m)",
+  "cond1": "ｼﾘｱﾙ「HG〇〇4」の時",
+  "names": [
+   "LED照明"
+  ],
+  "note": null
+ },
+ {
+  "no": 7,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG Lシフト OP",
+  "cond1": "HG全機種共通",
+  "names": [
+   "バックゲージ　",
+   "Lシフト",
+   "バックゲージ　Y○軸+L軸シフト"
+  ],
+  "note": null
+ },
+ {
+  "no": 8,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG 自動制御スライドフットOP",
+  "cond1": "HG全機種共通",
+  "names": [
+   "自動スライドフットペダル"
+  ],
+  "note": "手動スライドフットは対象外"
+ },
+ {
+  "no": 9,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "ワークセンサ突き当て",
+  "cond1": "HG全機種共通",
+  "names": [
+   "ワークセンサ突き当て"
+  ],
+  "note": null
+ },
+ {
+  "no": 10,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG フタリフット/AFセンタクASSY",
+  "cond1": "HG全機種共通",
+  "names": [
+   "2人操作フットペダル"
+  ],
+  "note": "自動スライドフット＋2人操作フットペダルにてOP（単体では付かない）"
+ },
+ {
+  "no": 11,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG Psen-vip OP",
+  "cond1": "HG全機種共通",
+  "names": [
+   "安全装置　ピルツ",
+   "安全装置　Psen-vip"
+  ],
+  "note": "AS-01との併用はない"
+ },
+ {
+  "no": 12,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "HG ロボットOP",
+  "cond1": "機種名にARS・ARM",
+  "names": [
+   "機種名の最後が「ARS」",
+   "機種名の最後が「ARM」"
+  ],
+  "note": "OP欄には記載がないので、機種名だけで判断する"
+ },
+ {
+  "no": 13,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "AS-01UL(標準)",
+  "cond1": "HG全機種共通",
+  "names": [
+   "安全装置　AS-01(標準)",
+   "レーザー式安全装置　AS-01(標準)"
+  ],
+  "note": "ULは仕向ではないので「すべての仕向」に対応。PSENvip-Pとの併用はない"
+ },
+ {
+  "no": 14,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "AS-01(オプション)",
+  "cond1": "HG全機種共通",
+  "names": [
+   "安全装置　AS-01(オプション)",
+   "レーザー式安全装置　AS-01(オプション)"
+  ],
+  "note": "Psenvipとの併用はない"
+ },
+ {
+  "no": 15,
+  "grp": "HG",
+  "target": "HG共通　Y化",
+  "name": "W24",
+  "cond1": "HG Y化仕様",
+  "names": [
+   "AS-00選択がない場合"
+  ],
+  "note": "OP欄には記載がないのでAS-01未実装とｼﾘｱﾙ構成で判断"
+ },
+ {
+  "no": 16,
+  "grp": "HG",
+  "target": "HG共通 B&R",
+  "name": "W79",
+  "cond1": "HG B&R仕様",
+  "names": [
+   "AS-01選択がない場合"
+  ],
+  "note": "OP欄には記載がないのでAS-01未実装とｼﾘｱﾙ構成で判断。機種名にARM/ARS/RM/ATCがある場合は不要"
+ },
+ {
+  "no": 17,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "追従装置SF1224TL",
+  "cond1": "50ｔを除く全機種",
+  "names": [
+   "追従装置　SF1224TL"
+  ],
+  "note": "追従装置に「●」があっても「1224以外」はOPとならない"
+ },
+ {
+  "no": 18,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "追従装置(50DMS)",
+  "cond1": "50ｔのみ",
+  "names": [
+   "追従装置　SF1224TLで且つ50tDMSの場合"
+  ],
+  "note": "追従装置に「●」があっても「1224以外」はOPとならない"
+ },
+ {
+  "no": 20,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "PSSユニット(標準)",
+  "cond1": "HG全機種共通",
+  "names": [
+   "除外条件以外は必ず実装する"
+  ],
+  "note": "確定仕様書にOP記載はない。「Psen-vipオプションの場合はつかない」 "
+ },
+ {
+  "no": 22,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "PSSユニット(オプション)",
+  "cond1": "HG全機種共通",
+  "names": [
+   "Psen-vipオプション選択時",
+   "機種名にARS/ARM/RM/ATCが着いたとき"
+  ],
+  "note": "確定仕様書にOP記載はない。 "
+ },
+ {
+  "no": 23,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "VFユニット中型オプション",
+  "cond1": "中型機",
+  "names": [
+   "VC-BOX＋Psen-vipが併用で選択されたとき",
+   "機種名にARS/ARM/RM/ATCがつき、DMSの時"
+  ],
+  "note": "VC-BOX単体では実装せず、条件を満たした場合のみ"
+ },
+ {
+  "no": 24,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "特殊仕様",
+  "cond1": "全品　特殊機№ある場合",
+  "names": [
+   "特殊機No.に番号が附番されている"
+  ],
+  "note": null
+ },
+ {
+  "no": 25,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "ハイボディ",
+  "cond1": "HG全機種共通",
+  "names": [
+   "本体　ハイボディ100＋AS-01＋ハイアップアタッチメント100"
+  ],
+  "note": "機種名に「ATC」「R」が付く（＝ロボット仕様）の場合は無効"
+ },
+ {
+  "no": 26,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "A-KAS",
+  "cond1": "HG全機種共通",
+  "names": [
+   "A-KAS",
+   "AKAS"
+  ],
+  "note": null
+ },
+ {
+  "no": 27,
+  "grp": "HG",
+  "target": "HG共通",
+  "name": "両手操作",
+  "cond1": "HG全機種共通",
+  "names": [
+   "両手操作"
+  ],
+  "note": null
+ }
+]
