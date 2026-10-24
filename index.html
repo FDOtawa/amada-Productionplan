@@ -917,7 +917,8 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <ol class="legend"><li><span class="no">1</span><div><b>読み取り中</b>：「確定仕様書を読み解いています（○ / ○ ページ）」の画面に、今読んでいるファイル・ページと残りの時間の目安が出ます。<b>1ページ数秒</b>かかります（初回だけ準備に少し時間がかかります）。「中止」で止められます。</div></li>
 <li><span class="no">2</span><div><b>読む所</b>：上の欄の生産年月・SER №・機種名・国名・契約先・納入先・特殊機№と、「確定」の列に ● が付いた行の項目名、右側の備考です。</div></li>
 <li><span class="no">3</span><div><b>読まないページ</b>：<b>ラック登録一覧</b>、<b>納入先が AESA</b> のページ、<b>HRB・SRB 以外の機種</b>のページ（組付仕様書の HG・EGB など）、一覧表など確定仕様書の様式でないページは飛ばします。<b>横向きの確定仕様書</b>（HRB大型など。組付仕様書の中にあります）も、向きを自動で直して読みます（「【ベンディング 先行配布】組付仕様書(中型)」の PDF をそのまま取り込めば、HRB大型のページだけが帳票に出ます）。</div></li>
-<li><span class="no">4</span><div><b>保存</b>：読み終わると保存の画面が開きます（保存先は設定の「02 確定仕様書読み解き」のフォルダ）。ファイル名は「<b>HRB・SRB 確定仕様書読み解き 2026年12月</b>」のように、機種のボタン名＋確定仕様書読み解き＋客先の生産月です（自由に変えられます）。保存すると、取り込んだファイルと機種の選択はクリアされます。保存をキャンセルしたときは、もう一度「読み解き開始」を押せば読み直さずに保存の画面が開きます。</div></li></ol>
+<li><span class="no">4</span><div><b>保存</b>：読み終わると保存の画面が開きます（保存先は設定の「02 確定仕様書読み解き」のフォルダ）。ファイル名は「<b>HRB・SRB 確定仕様書読み解き 2026年12月</b>」のように、機種のボタン名＋確定仕様書読み解き＋客先の生産月です（自由に変えられます）。保存すると、取り込んだファイルと機種の選択はクリアされます。保存をキャンセルしたときは、もう一度「読み解き開始」を押せば読み直さずに保存の画面が開きます。</div></li>
+<li><span class="no">5</span><div><b>読み解き済みの PDF</b>（2026-10-24〜）：Excel と一緒に、取り込んだ PDF ごとに「（元の名前） 読み解き済み.pdf」を<b>同じフォルダに保存</b>します（元の PDF はそのまま）。帳票で「1」にした OP の根拠の行は、オプション名の欄を<b>黄色の蛍光ペン</b>で塗ります。● ではなく条件で付けた OP（W24・W61・標準ﾌﾞﾚｰｶ・特殊仕様・ATC装置・LEDｹｰﾌﾞﾙ など）は、OP の記載の最後の項目「<b>別紙仕様書</b>」の行から1行あけて、<b>1行に1つずつ赤字</b>（2行分くらいの大きさ・黄色の蛍光ペン付き）で書きます（「別紙仕様書」が無い様式はオプションの表の最終行のあと。備考欄などの枠は使いません）。読まなかったページはそのまま入ります。ファイルは画像の PDF（130dpi）で、32ページで約7MB です。<b>文字の読み違いで判断できなかった行は塗られない</b>ので、帳票と見比べるときの目印にしてください。</div></li></ol>
 <table class="mt"><tr><th>帳票の列</th><th>中身</th></tr>
 <tr><td>ｱﾏﾀﾞ生産月・機種名・ｼﾘｱﾙ</td><td>生産年月・機種名＋仕向（客先が AAI のときは後ろに AAI）・SER №</td></tr>
 <tr><td>仕向・国名</td><td>国名が日本なら DMS、ほかは EXP（SRB で欧州の国は CE）</td></tr>
@@ -3041,12 +3042,30 @@ async function pickSaveOnce() { // 保存画面から：今回だけ保存先を
   return h;
 }
 // 同じ名前のファイルがあれば「 (1)」「 (2)」…を付けた、まだ無い名前を返す
-async function uniqueName(dir, base) {
+async function uniqueName(dir, base, ext = '.xlsx') {
   const exists = async n => { try { await dir.getFileHandle(n); return true; } catch (e) { return false; } };
-  if (!(await exists(base + '.xlsx'))) return base + '.xlsx';
-  for (let i = 1; i < 1000; i++) { const n = `${base} (${i}).xlsx`; if (!(await exists(n))) return n; }
+  if (!(await exists(base + ext))) return base + ext;
+  for (let i = 1; i < 1000; i++) { const n = `${base} (${i})${ext}`; if (!(await exists(n))) return n; }
   throw new Error('番号が足りません');
 }
+// Excel と一緒に保存するファイル（確定仕様書読み解きの「読み解き済みの PDF」。2026-10-24）：job.extras() → [{ base, ext, type, data }]
+const jobExtras = job => (job && job.extras ? job.extras() : []);
+async function saveExtras(dir, job){
+  const names = [];
+  for (const x of jobExtras(job)) {
+    const n = await uniqueName(dir, x.base, x.ext), fh = await dir.getFileHandle(n, { create: true });
+    const w = await fh.createWritable(); await w.write(new Blob([x.data], { type: x.type })); await w.close(); names.push(n);
+  }
+  return names;
+}
+function downloadExtras(job){
+  for (const x of jobExtras(job)) {
+    const url = URL.createObjectURL(new Blob([x.data], { type: x.type }));
+    const a = document.createElement('a'); a.href = url; a.download = x.base + x.ext; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+}
+const extrasNote = n => (n ? `（読み解き済みの PDF ${n}つも）` : '');
 // 保存ダイアログ（ファイル名を任意で付けて保存）
 let lastYM = '', lastInfo = null;
 let saveJob = null; // 確定仕様書読み解きの保存（{ infoHtml, name, build, done }）。生産計画抽出では使わない
@@ -3084,14 +3103,16 @@ async function doSave(){
       const finalName = await uniqueName(dir, name);
       const fh = await dir.getFileHandle(finalName, { create: true });
       const w = await fh.createWritable(); await w.write(new Blob([data])); await w.close();
-      closeSave(); showDone(finalName);
+      const more = await saveExtras(dir, job);
+      closeSave(); showDone(finalName, '', extrasNote(more.length));
     } catch (e) { showDlFallback(e); }
     return;
   }
   if (downloads){
     try {
       await downloads.save({ filename, data: new Blob([data]) });
-      closeSave(); showDone(filename);
+      for (const x of jobExtras(job)) await downloads.save({ filename: x.base + x.ext, data: new Blob([x.data], { type: x.type }) });
+      closeSave(); showDone(filename, '', extrasNote(jobExtras(job).length));
     } catch(e){
       if (e && e.code === 'declined') { msg.textContent = '保存を取り消しました'; msg.className = 'save-msg'; return; }
       if (e && e.code === 'rate_limited') { msg.textContent = '保存の確認画面がすでに開いています。少し待ってからもう一度押してください'; msg.className = 'save-msg ng'; return; }
@@ -3103,11 +3124,12 @@ async function doSave(){
     const url = URL.createObjectURL(new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     const a = document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 5000);
-    closeSave(); showDone(filename);
+    downloadExtras(job);
+    closeSave(); showDone(filename, '', extrasNote(jobExtras(job).length));
   }catch(e){ closeSave(); showErr('保存できません', [{ cause: 'この画面ではファイルを保存できませんでした' }]); }
 }
-function showDone(filename, where){
-  const d = $('saved'); d.textContent = `「${filename}」を${where ? where + 'に' : ''}保存しました`; d.hidden = false;
+function showDone(filename, where, more){
+  const d = $('saved'); d.textContent = `「${filename}」${more || ''}を${where ? where + 'に' : ''}保存しました`; d.hidden = false;
   clearTimeout(showDone.t); showDone.t = setTimeout(() => d.hidden = true, 6000);
   const job = curJob();
   if (job) { saveJob = null; job.done(); return; } // 確定仕様書読み解き：そのページの取り込み・機種をクリア
@@ -3145,7 +3167,7 @@ $('saveDlBtn').addEventListener('click', () => {
   let name = $('saveName').value.trim().replace(/\.xlsx$/i, '');
   if (!name) { msg.textContent = 'ファイル名を入力してください'; msg.className = 'save-msg ng'; $('saveName').focus(); return; }
   if (/[\\/:*?"<>|]/.test(name)) { msg.textContent = 'ファイル名に \\ / : * ? " < > | は使えません'; msg.className = 'save-msg ng'; $('saveName').focus(); return; }
-  try { const job = curJob(); downloadXlsx(name + '.xlsx', job ? job.build() : buildWorkbook(XLSX, lastRows, PROCESSORS[machine])); closeSave(); showDone(name + '.xlsx', 'ダウンロードフォルダ'); }
+  try { const job = curJob(); downloadXlsx(name + '.xlsx', job ? job.build() : buildWorkbook(XLSX, lastRows, PROCESSORS[machine])); downloadExtras(job); closeSave(); showDone(name + '.xlsx', 'ダウンロードフォルダ', extrasNote(jobExtras(job).length)); }
   catch (err) { closeSave(); showErr('保存できません', [{ cause: 'この画面ではファイルを保存できませんでした' }]); }
 });
 loadSaveDir();
@@ -3591,13 +3613,17 @@ var spFiles = [], spMachine = '';
     const c = document.createElement('canvas'), g = c.getContext('2d');
     if (deg % 180) { c.width = cv.height; c.height = cv.width; } else { c.width = cv.width; c.height = cv.height; }
     g.translate(c.width / 2, c.height / 2); g.rotate(deg * Math.PI / 180); g.drawImage(cv, -cv.width / 2, -cv.height / 2);
+    g.setTransform(1, 0, 0, 1, 0, 0); // 回転の設定を戻す（残すと、あとで描く印が回った位置に出る。2026-10-24）
     return c;
   }
   function analyzeGrid(cv) {
     // 細い列の幅の目安は紙の短い辺から（横向きの様式でも列の幅は縦の様式と同じ。2026-10-22）
     const img = R.binarize(cv, 185), unit = Math.round(Math.min(cv.width, cv.height) / 44);
     const lines = R.findLines(img, Math.round(cv.width * 0.06), Math.round(cv.height * 0.02), 3, 0);
-    const groups = R.markGroups(lines.V, unit).filter(g => g.y1 - g.y0 > cv.height * 0.15);
+    const all = R.markGroups(lines.V, unit).filter(g => g.y1 - g.y0 > cv.height * 0.15);
+    // 同じ位置の組が「長いもの」と「途中からのもの」の2つ見つかることがある → 長い方だけ残す（2026-10-24：HG 22402974 で表の上端を見誤った）
+    const len = g => g.y1 - g.y0;
+    const groups = all.filter((g, i) => !all.some((o, j) => j !== i && Math.abs(o.kx0 - g.kx0) < 6 && o.y0 <= g.y0 + 2 && o.y1 >= g.y1 - 2 && (len(o) > len(g) || (len(o) === len(g) && j < i))));
     return { img, lines, groups };
   }
   // 確定仕様書の向きとして正しいか：「改訂・確定・販売」の列が左端にあり、「確定」の列に ● があり、上の欄の外枠が見つかる。
@@ -3605,14 +3631,15 @@ var spFiles = [], spMachine = '';
   function frameOf(cv, A) {
     if (!A.groups.length) return null;
     const { img, lines, groups } = A, main = groups.slice().sort((a, b) => a.kx0 - b.kx0)[0];
-    if (main.kx0 > cv.width * 0.3 || R.dotsInColumn(img, main).length < 3) return null;
+    const dots = R.dotsInColumn(img, main).length;
+    if (main.kx0 > cv.width * 0.3 || dots < 3) return null;
     const longV = lines.V.filter(v => v.y1 - v.y0 > cv.height * 0.4), longH = lines.H.filter(h => h.x1 - h.x0 > cv.width * 0.5);
     // 外枠：左右は長い横線の端（右の縦線はかすれて見つからないことがある）
     const fL = Math.min(...longH.map(h => h.x0), ...longV.map(v => v.x)), fR = Math.max(...longH.map(h => h.x1));
     const gy = main.y0, fT = Math.min(...longH.filter(h => h.y < gy - 50).map(h => h.y));
     // 外枠（上の欄）が見つからないページは確定仕様書の様式ではない（一覧表など）。そのまま読むと切り出しの大きさがおかしくなる
     if (![fL, fR, fT].every(Number.isFinite) || fR - fL < cv.width * 0.5 || gy - fT < cv.height * 0.08) return null;
-    return { main, fL, fR, fT, gy };
+    return { main, fL, fR, fT, gy, dots };
   }
   async function ocrText(worker, canvas, psm, white) {
     if (!(canvas.width > 4 && canvas.height > 4)) return { t: '', raw: '', conf: 0 }; // 空の画像を渡すと読み取りが止まる
@@ -3626,7 +3653,8 @@ var spFiles = [], spMachine = '';
       ym: [538, 80, 755, 108], ser: [1012, 80, 1142, 108], country: [862, 186, 1142, 209],
       contract: [192, 163, 625, 208], dest: [192, 255, 625, 300], model: [138, 395, 545, 425], tok: [930, 410, 1142, 429] } },
     landscape: { T: { L: 100, R: 2365, TOP: 146, GY: 556 }, BOX: {
-      ym: [868, 146, 1224, 201], ser: [1611, 146, 1794, 201], country: [1886, 274, 2160, 341],
+      // country2：海外向けの HG の様式（「110_HG2204ATC 海外標準仕様」など）は国名が「仕向仕様」の下にある（2026-10-24）
+      ym: [868, 146, 1224, 201], ser: [1611, 146, 1794, 201], country: [1886, 274, 2160, 341], country2: [1546, 378, 1778, 440],
       contract: [290, 280, 925, 338], dest: [290, 381, 925, 440], model: [195, 483, 623, 555], tok: [1082, 521, 1326, 555] } },
   };
   // 読まないページ（2026-10-16 ユーザー指示：ラック登録一覧は読み解きしない）：ページの上の帯（見出し）を読んで見分ける
@@ -3639,12 +3667,13 @@ var spFiles = [], spMachine = '';
   // 1ページ分（opts.want(head) が false のページは、上の欄の機種名を読んだところで止める＝HRB・SRB 以外を早く飛ばす）
   async function readPage(worker, cv0, opts) {
     opts = opts || {};
-    // 向き：そのまま → 90° → 270° の順に試し、確定仕様書として正しい向き（frameOf）を使う（横向きの様式も読む。2026-10-22）
+    // 向き：そのまま・90°・270° を全部試し、確定仕様書として正しい向き（frameOf）のうち「確定」の列の ● がいちばん多い向きを使う（横向きの様式も読む。2026-10-22）
+    // 横向きのページは回す前でも表の横線が縦線に見え、● が3つほどある列の組と間違えることがあるので、最初に通った向きでは決めない（2026-10-24：HG の p8・p14・p15）
     let cv = null, A = null, F = null, anyGroups = false;
     for (const d of [0, 90, 270]) {
       const c = d ? rotate(cv0, d) : cv0, B = analyzeGrid(c), G2 = frameOf(c, B);
       if (B.groups.length) anyGroups = true;
-      if (G2) { cv = c; A = B; F = G2; break; }
+      if (G2 && (!F || G2.dots > F.dots)) { cv = c; A = B; F = G2; }
     }
     if (!F) {
       // ラック登録一覧（2026-10-16 ユーザー指示：読まない）は、そのままの向きか 90°回した向きの見出しで見分ける
@@ -3657,16 +3686,27 @@ var spFiles = [], spMachine = '';
       return [fL + (x0 - T.L) * sx, fT + (y0 - T.TOP) * sy, fL + (x1 - T.L) * sx, fT + (y1 - T.TOP) * sy]; };
     const k1 = Math.min(cv.width, cv.height) / 1190; // 解像度の倍率（基準：紙の短い辺が 1190px）
     const lv = R.findLines(img, Math.round(70 * k1), Math.round(22 * k1), Math.round(2 * k1), 0);
-    const crop = (k, sc) => { const [x0, y0, x1, y1] = box(k), c = R.eraseLines(cv, img, lv, Math.max(0, x0 + 2 * k1), Math.max(0, y0 + k1), Math.min(cv.width, x1 - 2 * k1), y1 - k1, (sc || 3) * 2 / Math.max(2, 2 * k1));
-      if (opts.debug) (opts.crops = opts.crops || {})[k] = c.toDataURL(); return c; }; // opts.debug：切り出した画像を opts.crops に残す（確認用）
+    // k は型の名前か [x0, y0, x1, y1]（name は確認用の名前）
+    const crop = (k, sc, name) => { const [x0, y0, x1, y1] = Array.isArray(k) ? k : box(k), c = R.eraseLines(cv, img, lv, Math.max(0, x0 + 2 * k1), Math.max(0, y0 + k1), Math.min(cv.width, x1 - 2 * k1), y1 - k1, (sc || 3) * 2 / Math.max(2, 2 * k1));
+      if (opts.debug) (opts.crops = opts.crops || {})[name || k] = c.toDataURL(); return c; }; // opts.debug：切り出した画像を opts.crops に残す（確認用）
+    // 横向きの様式の特殊機№：機種名の行の縦線から欄を探す（HRB大型・HG の国内向け・海外向けで位置が違う。2026-10-24）
+    // 外枠の幅の 42% より右にある最初の縦線が特殊機№の左端、次の縦線が右端。見つからなければ型の位置
+    const tokBox = () => {
+      if (form !== 'landscape') return 'tok';
+      const xs = lines.V.filter(v => v.y0 <= gy - 25 * k1 && v.y0 >= gy - 120 * k1 && v.y1 >= gy - 8 * k1).map(v => v.x).sort((a, b) => a - b);
+      const l = xs.find(x => x > fL + 0.42 * (fR - fL)), r = l === undefined ? undefined : xs.find(x => x > l + 50 * k1);
+      if (r === undefined) return 'tok';
+      const [, y0, , y1] = box('tok'); return [l, y0, r, y1];
+    };
     const head = {};
     const AN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     { const r = await ocrText(worker, crop('ym'), 7); const m = r.t.match(/(20)?(\d\d)\D{0,2}(\d{1,2})月/); head.ym = m ? `20${m[2]}年${+m[3]}月` : ''; head.ymRaw = r.t; }
     { const r = await ocrText(worker, crop('ser'), 7, AN); const m = r.t.match(/[A-Z]{0,3}\d{5,8}/); head.ser = m ? m[0] : r.t; }
     { const r = await ocrText(worker, crop('model'), 7, AN + '-._'); const t = r.t.replace(/^[^A-Z]*?[I1L]?RB(?=C?\d)/, 'HRB'), m = t.match(/(HRBC|HRB|SRB|HG|EGB)\d{3,4}[A-Z]*/); head.model = m ? m[0] : r.t; }
     if (opts.want && !opts.want(head)) return { head, dots: [], notes: '', rotated: cv !== cv0, form, early: true };
-    { const r = await ocrText(worker, crop('tok'), 7, AN + '-'); const m = r.t.match(/[A-Z]{2,3}\d?-\d{3,5}/); head.tok = m ? m[0] : ''; head.tokRaw = r.t; }
+    { const r = await ocrText(worker, crop(tokBox(), 3, 'tok'), 7, AN + '-'); const m = r.t.match(/[A-Z]{2,3}\d?-\d{3,5}/); head.tok = m ? m[0] : ''; head.tokRaw = r.t; }
     head.country = (await ocrText(worker, crop('country'), 7)).t;
+    if (BOX.country2) head.country2 = (await ocrText(worker, crop('country2'), 7)).t; // どちらの国名を使うかは判定（SpJudge）で決める
     // 客先名：日本語の文字の間の空白は消し、英語の単語の間の空白は1つ残す（Amada (India) Pvt. Ltd. など）
     const nameText = r => String(r.raw || '').normalize('NFKC').replace(/\s+/g, ' ').trim().replace(/ (?![!-~])|(?<![!-~]) /g, '');
     head.contract = nameText(await ocrText(worker, crop('contract', 3), 7));
@@ -3685,7 +3725,41 @@ var spFiles = [], spMachine = '';
     const mr = R.rows(img, lines, main), tableRight = mr.length ? Math.max(...mr.map(r => r.lx1)) : cv.width / 2;
     const ny = Math.round(gy + (cv.height - gy) * (form === 'landscape' ? 0.25 : 0.4));
     const notes = (await ocrText(worker, R.eraseLines(cv, img, lv, tableRight + 6 * k1, ny, fR - 4 * k1, cv.height - 30 * k1, 2 / k1 * 1.3), 6)).t;
-    return { head, dots, notes, rotated: cv !== cv0, form };
+    // 印を付けるための位置（2026-10-24 ユーザー指示：読み解き済みの PDF に、実装の行を黄色で塗り、条件で付けた OP を赤字で書く）
+    // rows：● の行（dots と同じ順）のオプション名の欄（行の中の最初の区切り線まで）／slots：オプションの表の最終行のあとの空いた行
+    // 欄の区切り線は行の上端から下端までつながっている（文字の縦線は上下に余白がある）ので、ほぼ全部が黒い縦の列を区切り線とみなす
+    const nameRight = r => { for (let x = Math.round(r.lx0 + 40 * k1); x < r.lx1 - 4; x++) if (R.dark(img, x, r.y0 + 1, x + 1, r.y1 - 1) > 0.95 || R.dark(img, x - 1, r.y0 + 1, x + 2, r.y1 - 1) > 0.9) return x; return r.lx1; };
+    // 行の記入の量：欄の区切り線（縦にほぼ全部が黒い列）は数えない（空いた行でも区切り線があると「記入あり」に見えていた。2026-10-24）
+    const inkOf = r => {
+      const x0 = Math.round(r.lx0 + 6 * k1), x1 = Math.round(Math.min(r.lx1, r.lx0 + 600 * k1) - 6 * k1), y0 = Math.round(r.y0 + 4), y1 = Math.round(r.y1 - 4), hgt = Math.max(1, y1 - y0);
+      let n = 0, t = 0;
+      for (let x = x0; x < x1; x++) { let c = 0; for (let y = y0; y < y1; y++) c += img.b[y * img.w + x]; if (c / hgt < 0.7) n += c; t += hgt; }
+      return t ? n / t : 0;
+    };
+    let lastUsed = -1; mr.forEach((r, i) => { if (inkOf(r) > 0.004) lastUsed = i; });
+    // 赤字を書く起点（2026-10-24 ユーザー指示）：OP の記載の最後の項目「別紙仕様書」の行。表ごとに最後に記入のある行を読んで探す
+    // （ATC の様式は「別紙仕様書」が右の表にある＝左の表の下に書くと枠の外にはみ出していた。見つからない様式はオプションの表の最終行のあと）
+    let anchor = null; const tried = [];
+    // 表の下から上へ、記入のありそうな行を読み、文字が読めた最初の行を「最後の項目」とする（スキャンの薄い汚れを記入と見誤ることがあるため。読むのは1つの表で6行まで）
+    for (const g of groups) {
+      const cand = R.rows(img, lines, g).filter(r => inkOf(r) > 0.004).reverse().slice(0, 6);
+      for (const last of cand) {
+        const t = (await ocrText(worker, R.cellCanvas(cv, img, last.lx0, last.y0 + k1, Math.min(last.lx1, last.lx0 + 300 * k1), last.y1 - k1, 2), 6)).t;
+        tried.push({ kx: Math.round(g.kx0), y0: Math.round(last.y0), y1: Math.round(last.y1), t });
+        if (t.replace(/[^一-鿿぀-ヿA-Za-z0-9]/g, '').length < 2) continue; // 文字が読めない行（汚れ・空いた行）は飛ばす
+        if (/別紙|紙仕様/.test(t)) anchor = { x0: last.lx0, y0: last.y0, x1: last.lx1, y1: last.y1 };
+        break;
+      }
+      if (anchor) break;
+    }
+    const geom = {
+      w: cv.width, h: cv.height,
+      rows: dotRows.map(r => ({ x0: r.lx0, y0: r.y0, x1: nameRight(r), y1: r.y1 })),
+      slots: mr.slice(lastUsed + 1).map(r => ({ x0: r.lx0, y0: r.y0, x1: r.lx1, y1: r.y1 })),
+      rowH: mr.length ? mr.map(r => r.y1 - r.y0).sort((a, b) => a - b)[mr.length >> 1] : 26 * k1,
+      bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL, anchor, tried, // tried：「別紙仕様書」を探して読んだ行（確認用）
+    };
+    return { head, dots, notes, rotated: cv !== cv0, form, geom, canvas: opts.keepCanvas ? cv : undefined };
   }
   G.SpPage = { readPage, rotate };
 })(window);
@@ -3773,6 +3847,7 @@ var spFiles = [], spMachine = '';
     const kind = srb ? (t >= 220 ? 'SRB中型' : 'SRB小型') : t >= 350 ? 'HRB大型' : t === 220 ? 'HRB中型' : 'HRB小型';
     // 国名が読めないときは、客先名（納入先・契約先）から探す（アプリの countryOf）
     let cn = country(h.country);
+    if (!COUNTRIES.includes(cn) && h.country2 && COUNTRIES.includes(country(h.country2))) cn = country(h.country2); // 海外向けの HG の様式は国名が「仕向仕様」の下（2026-10-24）
     if (!COUNTRIES.includes(cn) && opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || cn;
     const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
     const shimuke = cn === '日本' ? 'DMS' : (srb && EU.has(cn)) ? 'CE' : 'EXP';
@@ -3813,6 +3888,86 @@ var spFiles = [], spMachine = '';
     return { ym: h.ym, name, ser, shimuke, country: cnOut, cust, kind, f, biko: biko.join('・'), marks: [...m] };
   }
   G.SpJudge = { judge, country, tons, marks };
+})(window);
+// 読み解き済みの PDF（2026-10-24 ユーザー指示）：読み解いたページに印を付けて、PDF にまとめる
+// ① 帳票で「1」にした OP の根拠の ● の行は、オプション名の欄を黄色の蛍光ペンで塗る
+// ② ● ではなく条件で付けた OP（W24・標準ﾌﾞﾚｰｶ・特殊仕様・ATC 装置など）は、オプションの表の最終行のあとの空いた行に、1行に1つずつ赤字で書き、黄色で塗る
+//    （空いた行が足りなければ表の下に続ける。文字の大きさは確定仕様書の行の高さに合わせる。備考欄などの枠は使わない）
+(function (G) {
+  // 赤字で書くときの名前（帳票の列名と変えるもの。2026-10-24 ユーザー指示「LEDケーブルKDのみ は LEDケーブル で OK」）
+  const LABEL = { 'LEDｹｰﾌﾞﾙKDのみ': 'LEDｹｰﾌﾞﾙ' };
+  // どの行を塗り、どの OP を赤字にするか。judge(p) は帳票の1行（f＝OP の番号 → 実装）を返す関数、ops は [{ no, name }]
+  // 条件の OP：● が1つも無くても「1」になる OP。そのほかは、その行だけで「1」になる行と、その行を外すと「1」が消える行を根拠とする
+  function plan(p, judge, ops) {
+    const row = judge(p); if (!row || row.skip) return null;
+    const dots = p.dots || [], on = Object.keys(row.f).filter(k => row.f[k]).map(Number);
+    const bare = judge({ ...p, dots: [] }).f || {}, hl = new Set(), cond = [];
+    for (const k of on) {
+      if (bare[k]) { cond.push(k); continue; }
+      dots.forEach((d, i) => {
+        if (judge({ ...p, dots: [d] }).f[k] || !judge({ ...p, dots: dots.filter((_, j) => j !== i) }).f[k]) hl.add(i);
+      });
+    }
+    const name = k => { const n = (ops.find(o => o.no === k) || {}).name || String(k); return LABEL[n] || n; };
+    return { hl: [...hl].sort((a, b) => a - b), cond: cond.map(name) };
+  }
+  const MARK = 'rgb(255,238,40)', RED = '#E00000';
+  // 印を描く（cv は読み取りに使ったページの画像。回した向きのまま）
+  function draw(cv, geom, pl) {
+    const g = cv.getContext('2d'), hh = Math.max(10, geom.rowH);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = MARK; // 文字が透けるように「乗算」で塗る
+    for (const i of pl.hl) { const r = geom.rows[i]; if (r) g.fillRect(r.x0 + 2, r.y0 + 2, r.x1 - r.x0 - 4, r.y1 - r.y0 - 3); }
+    g.restore();
+    if (!pl.cond.length) return;
+    // 赤字（2026-10-24 ユーザー指示）：「別紙仕様書」の行（無ければオプションの表の最終行）から1行あけて、1行に1つずつ。
+    // 文字は2行分くらいの大きさ（マス目には合わせない）。黄色の蛍光ペンも塗る
+    const fs = Math.round(hh * 1.5), lh = hh * 2, a = geom.anchor, s0 = geom.slots[0];
+    const x = (a ? a.x0 : s0 ? s0.x0 : geom.left) + Math.round(hh * 0.3);
+    const top = a ? a.y1 + hh : (s0 ? s0.y0 : geom.bottom) + hh;
+    g.font = `bold ${fs}px "BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif`; g.textBaseline = 'middle';
+    // 下に入りきらないときは落とさず、右の列に続ける
+    const per = Math.max(1, Math.floor((cv.height - 4 - top) / lh)), colW = Math.max(...pl.cond.map(t => g.measureText(t).width)) + hh * 1.5;
+    pl.cond.forEach((t, j) => {
+      const xx = x + Math.floor(j / per) * colW, y0 = top + (j % per) * lh, y1 = y0 + lh;
+      const w = g.measureText(t).width, pad = Math.round(hh * 0.15);
+      g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = MARK; g.fillRect(xx - pad, y0 + pad, w + pad * 2, lh - pad * 2); g.restore();
+      g.fillStyle = RED; g.fillText(t, xx, (y0 + y1) / 2 + 1);
+    });
+  }
+  // 画像（JPEG）のページから PDF を作る。pages：[{ jpg: Uint8Array, w, h（画素）, dpi }]
+  function pdf(pages) {
+    const enc = new TextEncoder(), parts = [], offs = []; let size = 0;
+    const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); size += b.length; };
+    const obj = (n, body) => { offs[n] = size; put(`${n} 0 obj\n`); body(); put('\nendobj\n'); };
+    put('%PDF-1.4\n'); put(new Uint8Array([37, 226, 227, 207, 211, 10])); // 2行目は「中身がバイナリ」の印
+    const n = pages.length, kids = pages.map((_, i) => `${3 + i * 3} 0 R`).join(' ');
+    obj(1, () => put('<< /Type /Catalog /Pages 2 0 R >>'));
+    obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${kids}] >>`));
+    pages.forEach((pg, i) => {
+      const P = 3 + i * 3, C = P + 1, I = P + 2, k = 72 / (pg.dpi || 150), W = (pg.w * k).toFixed(2), H = (pg.h * k).toFixed(2);
+      const cs = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+      obj(P, () => put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${I} 0 R >> >> /Contents ${C} 0 R >>`));
+      obj(C, () => put(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`));
+      obj(I, () => { put(`<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.jpg.length} >>\nstream\n`); put(pg.jpg); put('\nendstream'); });
+    });
+    const total = 3 + n * 3, xref = size;
+    put(`xref\n0 ${total}\n0000000000 65535 f \n` + offs.slice(1, total).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+    put(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+    const out = new Uint8Array(size); let p = 0; for (const b of parts) { out.set(b, p); p += b.length; } return out;
+  }
+  // ページの画像を、PDF に入れる大きさ（dpi）に縮めて JPEG にする（ファイルを軽くするため。読み取りは 216dpi＝3倍で行う）
+  // 標準は 130dpi・画質 0.6（2026-10-24 ユーザー指示「10MB は重たいので 70% ほどに」：150dpi・0.7 の 311KB/ページ → 219KB/ページ。細かい字も読める）
+  const DPI = 130, QUALITY = 0.6;
+  async function page(cv, dpi, quality) {
+    dpi = dpi || DPI; quality = quality || QUALITY;
+    const s = dpi / 216, c = document.createElement('canvas');
+    c.width = Math.round(cv.width * s); c.height = Math.round(cv.height * s);
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cv, 0, 0, c.width, c.height);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', quality));
+    return { jpg: new Uint8Array(await blob.arrayBuffer()), w: c.width, h: c.height, dpi };
+  }
+  G.SpMark = { plan, draw, pdf, page };
 })(window);
 // OP一覧（デスクトップ「HRB読み解き.xlsx」の OP一覧。帳票の列の順・区分）
 const SP_HRB_OPS = [{"no": 1, "grp": "HRB小型・中型", "name": "ﾗｲﾄｶｰﾃﾝ(ATC機種に実装)"}, {"no": 2, "grp": "HRB小型・中型", "name": "自動ｸﾗｳﾆﾝｸﾞ2軸"}, {"no": 3, "grp": "HRB小型・中型", "name": "自動ｸﾗｳﾆﾝｸﾞ4軸"}, {"no": 4, "grp": "HRB小型・中型", "name": "Lｼﾌﾄ"}, {"no": 5, "grp": "HRB小型・中型", "name": "BI-S1軸"}, {"no": 6, "grp": "HRB小型・中型", "name": "BI-S2軸"}, {"no": 7, "grp": "HRB小型・中型", "name": "AS-01"}, {"no": 8, "grp": "HRB小型・中型", "name": "W24（AS-01なし)"}, {"no": 9, "grp": "HRB小型・中型", "name": "AGRIP-A(5020-1003)"}, {"no": 10, "grp": "HRB小型・中型", "name": "AGRIP-A(1303)"}, {"no": 11, "grp": "HRB小型・中型", "name": "AGRIP-A(2204)"}, {"no": 12, "grp": "HRB小型・中型", "name": "AGRIP-A(5020-1003EXP)"}, {"no": 13, "grp": "HRB小型・中型", "name": "AGRIP-A(1303EXP)"}, {"no": 14, "grp": "HRB小型・中型", "name": "AGRIP-A(2204EXP)"}, {"no": 15, "grp": "HRB小型・中型", "name": "自動ｽﾗｲﾄﾞﾌｯﾄ"}, {"no": 16, "grp": "HRB小型・中型", "name": "手動ｽﾗｲﾄﾞﾌｯﾄ"}, {"no": 17, "grp": "HRB小型・中型", "name": "ﾛﾎﾞｯﾄI/F"}, {"no": 18, "grp": "HRB小型・中型", "name": "二人ﾌｯﾄ"}, {"no": 19, "grp": "HRB小型・中型", "name": "2OP+AF"}, {"no": 20, "grp": "HRB小型・中型", "name": "ATC装置"}, {"no": 21, "grp": "HRB小型・中型", "name": "追従装置SF(小型・中型DMS)"}, {"no": 22, "grp": "HRB小型・中型", "name": "追従装置SF(中型EXP)"}, {"no": 23, "grp": "HRB小型・中型", "name": "追従装置SF1548H"}, {"no": 24, "grp": "HRB小型・中型", "name": "VFﾕﾆｯﾄ(VC-BOX)"}, {"no": 25, "grp": "HRB小型・中型", "name": "ｾｲｷﾞｮﾂｲｶ(IO)"}, {"no": 26, "grp": "HRB小型・中型", "name": "ｾｲｷﾞｮﾂｲｶ(IO)EXP"}, {"no": 27, "grp": "全品", "name": "指定色"}, {"no": 28, "grp": "全品", "name": "特殊仕様"}, {"no": 29, "grp": "HRB大型", "name": "ﾍﾋﾞｰﾊﾞｯｸｹﾞｰｼﾞY4軸"}, {"no": 30, "grp": "HRB大型", "name": "BI-Ｌ1軸"}, {"no": 31, "grp": "HRB大型", "name": "BI-Ｌ2軸"}, {"no": 32, "grp": "HRB大型", "name": "後方LED"}, {"no": 33, "grp": "HRB大型", "name": "AS-01"}, {"no": 34, "grp": "HRB大型", "name": "ｸﾗﾝﾌﾟOP"}, {"no": 35, "grp": "HRB大型", "name": "ﾛﾎﾞｯﾄI/F"}, {"no": 36, "grp": "HRB大型", "name": "ﾜｰｸｾﾝｻ"}, {"no": 37, "grp": "HRB大型", "name": "標準ﾌﾞﾚｰｶ"}, {"no": 38, "grp": "HRB大型", "name": "QF1ｵﾌﾟｼｮﾝ漏電ﾌﾞﾚｰｶｰ"}, {"no": 39, "grp": "HRB大型", "name": "ｾｲｷﾞｮﾂｲｶ(IO)"}, {"no": 40, "grp": "HRB大型", "name": "二人ﾌｯﾄﾍﾟﾀﾞﾙ"}, {"no": 41, "grp": "HRB大型", "name": "ATC"}, {"no": 42, "grp": "HRB小型・中型", "name": "LEDｹｰﾌﾞﾙKDのみ"}, {"no": 43, "grp": "SRB", "name": "AS-01(EXP)"}, {"no": 44, "grp": "SRB", "name": "AS-01（CE)"}, {"no": 45, "grp": "SRB", "name": "W61(AS-01なし：EXP)"}, {"no": 48, "grp": "SRB", "name": "W24(AS-01なし：CE)"}, {"no": 49, "grp": "SRB", "name": "LEDﾗｲﾄ（EXP)"}, {"no": 50, "grp": "SRB", "name": "LEDﾗｲﾄ（CE)"}, {"no": 51, "grp": "SRB", "name": "Y軸(ﾊﾞｯｸﾊﾟｯｹｰｼﾞ)"}, {"no": 52, "grp": "SRB", "name": "BI-S1軸"}, {"no": 53, "grp": "SRB", "name": "ﾃﾊﾟBOX CE (EXPは標準)"}];
@@ -3932,7 +4087,7 @@ async function spRunHRB(files){
   const pdfs = files.filter(f => f.kind === 'pdf'), xls = files.filter(f => f.kind !== 'pdf');
   if (!pdfs.length) { showErr('読み解きを開始できません', [{ cause: 'PDF の確定仕様書がありません', fix: 'HRB・SRB の読み解きは、今は PDF だけに対応しています（Excel の確定仕様書はまだ読めません）' }]); return; }
   spCancel = false;
-  const rows = [], log = [], seen = new Map(), notes = [];
+  const rows = [], log = [], seen = new Map(), notes = [], marked = []; // marked：読み解き済みの PDF（取り込んだ PDF ごと）
   const t0 = Date.now();
   try {
     spProg('読み取りの準備をしています', '最初の1回だけ、少し時間がかかります', 0);
@@ -3943,6 +4098,7 @@ async function spRunHRB(files){
     const total = docs.reduce((n, d) => n + d.pdf.numPages, 0);
     let done = 0;
     for (const [fi, d] of docs.entries()) {
+      const pages = []; // このファイルの読み解き済みの PDF のページ（2026-10-24）
       for (let n = 1; n <= d.pdf.numPages; n++) {
         if (spCancel) throw new Error('cancel');
         const left = done ? Math.round((Date.now() - t0) / done * (total - done) / 1000) : 0;
@@ -3952,18 +4108,25 @@ async function spRunHRB(files){
         const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
         await pg.render({ canvasContext: g, viewport: vp }).promise;
         // 1ページに時間がかかりすぎたら（読み取りが止まったら）、読み取りを作り直してそのページは飛ばす
-        let p, tm; try { p = await Promise.race([SpPage.readPage(ocr, c, { want: spIsHRB }), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
+        let p, tm; try { p = await Promise.race([SpPage.readPage(ocr, c, { want: spIsHRB, keepCanvas: true }), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
         catch (e) { if (e && e.message === 'timeout') { try { await ocr.terminate(); } catch (x) {} spOcr = null; ocr = await spEngine(); p = { skip: '読み取りに時間がかかりすぎたため飛ばした' }; } else p = { skip: '読み取りエラー（' + (e && e.message || e) + '）' }; }
         finally { clearTimeout(tm); }
-        pg.cleanup(); c.width = c.height = 0;
+        pg.cleanup();
         const row = SpJudge.judge(p, { countryOf }), h = p.head || {};
         const L = { file: d.f.name, page: n, ser: row.ser || h.ser, model: h.model, dots: (p.dots || []).join(' ／ ') };
+        let use = false;
         if (row.skip) { L.result = '読まない'; L.memo = row.skip; }
         else if (seen.has(row.ser)) { L.result = '重なり'; L.memo = `同じシリアルが ${seen.get(row.ser)} にもあるため、先のページを使いました`; }
-        else { seen.set(row.ser, `${d.f.name} の ${n}ページ`); row.cust = hankakuName(row.cust); rows.push(row); L.result = '帳票に出した'; L.memo = row.biko || ''; }
+        else { seen.set(row.ser, `${d.f.name} の ${n}ページ`); row.cust = hankakuName(row.cust); rows.push(row); L.result = '帳票に出した'; L.memo = row.biko || ''; use = true; }
         log.push(L); done++;
+        // 読み解き済みの PDF（2026-10-24 ユーザー指示）：帳票に出したページは、実装の行を黄色、条件で付けた OP を赤字で書く。ほかのページはそのまま
+        let cv = c;
+        if (use && p.canvas && p.geom) { const pl = SpMark.plan(p, x => SpJudge.judge(x, { countryOf }), SP_HRB_OPS); if (pl) { SpMark.draw(p.canvas, p.geom, pl); cv = p.canvas; } }
+        pages.push(await SpMark.page(cv));
+        c.width = c.height = 0; if (p.canvas) p.canvas.width = p.canvas.height = 0;
       }
       d.pdf.destroy();
+      marked.push({ base: d.f.name.replace(/\.pdf$/i, '') + ' 読み解き済み', ext: '.pdf', type: 'application/pdf', data: SpMark.pdf(pages) });
     }
   } catch (e) {
     $('spProg').hidden = true;
@@ -3981,6 +4144,8 @@ async function spRunHRB(files){
   const am = rows.filter(r => r.biko).length;
   if (am) notes.push(['warn', `備考欄に記載のある行が ${am} 件あります（ｱﾝﾏｯﾁ有など）。確定仕様書と見比べてください`]);
   notes.push(['info', '客先・国名は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
+  const mb = marked.reduce((s, m) => s + m.data.length, 0) / 1048576;
+  notes.push(['info', `読み解き済みの PDF（${marked.length}つ・計 ${mb.toFixed(1)}MB）も同じフォルダに保存します：${marked.map(m => m.base + '.pdf').join('、')}。実装と判断した行は黄色、● ではなく条件で付けた OP は赤字です`]);
   // 保存ファイル名（2026-10-16 ユーザー指示）：「ボタン名 確定仕様書読み解き 客先の生産月」。生産月が複数あれば「早い月〜遅い月」
   const yk = t => { const m = String(t || '').match(/(\d{4})年(\d{1,2})月/); return m ? +m[1] * 100 + +m[2] : 0; };
   const yms = [...new Set(rows.map(r => r.ym).filter(yk))].sort((a, b) => yk(a) - yk(b));
@@ -3989,6 +4154,7 @@ async function spRunHRB(files){
     infoHtml: `<div class="save-count"><b>${rows.length}</b>件を読み解き（${log.length}ページを読みました）</div>` + notes.map(([k, t]) => `<div class="note ${k}">${esc(t)}</div>`).join(''),
     name: `${spMachine} 確定仕様書読み解き${ym}`,
     build: () => spBuildXlsx(rows, log),
+    extras: () => marked, // Excel と一緒に保存するファイル（読み解き済みの PDF）
     done: spReset,
   };
   spLast = { key: spKey(), job: saveJob };

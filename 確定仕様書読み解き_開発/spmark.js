@@ -3,6 +3,8 @@
 // ② ● ではなく条件で付けた OP（W24・標準ﾌﾞﾚｰｶ・特殊仕様・ATC 装置など）は、オプションの表の最終行のあとの空いた行に、1行に1つずつ赤字で書き、黄色で塗る
 //    （空いた行が足りなければ表の下に続ける。文字の大きさは確定仕様書の行の高さに合わせる。備考欄などの枠は使わない）
 (function (G) {
+  // 赤字で書くときの名前（帳票の列名と変えるもの。2026-10-24 ユーザー指示「LEDケーブルKDのみ は LEDケーブル で OK」）
+  const LABEL = { 'LEDｹｰﾌﾞﾙKDのみ': 'LEDｹｰﾌﾞﾙ' };
   // どの行を塗り、どの OP を赤字にするか。judge(p) は帳票の1行（f＝OP の番号 → 実装）を返す関数、ops は [{ no, name }]
   // 条件の OP：● が1つも無くても「1」になる OP。そのほかは、その行だけで「1」になる行と、その行を外すと「1」が消える行を根拠とする
   function plan(p, judge, ops) {
@@ -15,7 +17,7 @@
         if (judge({ ...p, dots: [d] }).f[k] || !judge({ ...p, dots: dots.filter((_, j) => j !== i) }).f[k]) hl.add(i);
       });
     }
-    const name = k => (ops.find(o => o.no === k) || {}).name || String(k);
+    const name = k => { const n = (ops.find(o => o.no === k) || {}).name || String(k); return LABEL[n] || n; };
     return { hl: [...hl].sort((a, b) => a - b), cond: cond.map(name) };
   }
   const MARK = 'rgb(255,238,40)', RED = '#E00000';
@@ -27,15 +29,19 @@
     for (const i of pl.hl) { const r = geom.rows[i]; if (r) g.fillRect(r.x0 + 2, r.y0 + 2, r.x1 - r.x0 - 4, r.y1 - r.y0 - 3); }
     g.restore();
     if (!pl.cond.length) return;
-    const fs = Math.round(hh * 0.66);
+    // 赤字（2026-10-24 ユーザー指示）：「別紙仕様書」の行（無ければオプションの表の最終行）から1行あけて、1行に1つずつ。
+    // 文字は2行分くらいの大きさ（マス目には合わせない）。黄色の蛍光ペンも塗る
+    const fs = Math.round(hh * 1.5), lh = hh * 2, a = geom.anchor, s0 = geom.slots[0];
+    const x = (a ? a.x0 : s0 ? s0.x0 : geom.left) + Math.round(hh * 0.3);
+    const top = a ? a.y1 + hh : (s0 ? s0.y0 : geom.bottom) + hh;
     g.font = `bold ${fs}px "BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif`; g.textBaseline = 'middle';
+    // 下に入りきらないときは落とさず、右の列に続ける
+    const per = Math.max(1, Math.floor((cv.height - 4 - top) / lh)), colW = Math.max(...pl.cond.map(t => g.measureText(t).width)) + hh * 1.5;
     pl.cond.forEach((t, j) => {
-      const s = geom.slots[j], x = (s ? s.x0 : geom.left) + Math.round(hh * 0.3);
-      const y0 = s ? s.y0 : geom.bottom + (j - geom.slots.length) * hh + Math.round(hh * 0.2), y1 = s ? s.y1 : y0 + hh;
-      if (y1 > cv.height - 2) return;
-      const w = g.measureText(t).width;
-      g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = MARK; g.fillRect(x - 4, y0 + 2, w + 8, y1 - y0 - 3); g.restore();
-      g.fillStyle = RED; g.fillText(t, x, (y0 + y1) / 2 + 1);
+      const xx = x + Math.floor(j / per) * colW, y0 = top + (j % per) * lh, y1 = y0 + lh;
+      const w = g.measureText(t).width, pad = Math.round(hh * 0.15);
+      g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = MARK; g.fillRect(xx - pad, y0 + pad, w + pad * 2, lh - pad * 2); g.restore();
+      g.fillStyle = RED; g.fillText(t, xx, (y0 + y1) / 2 + 1);
     });
   }
   // 画像（JPEG）のページから PDF を作る。pages：[{ jpg: Uint8Array, w, h（画素）, dpi }]

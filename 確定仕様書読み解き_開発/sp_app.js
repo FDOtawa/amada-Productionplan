@@ -114,7 +114,7 @@ async function spRunHRB(files){
   const pdfs = files.filter(f => f.kind === 'pdf'), xls = files.filter(f => f.kind !== 'pdf');
   if (!pdfs.length) { showErr('読み解きを開始できません', [{ cause: 'PDF の確定仕様書がありません', fix: 'HRB・SRB の読み解きは、今は PDF だけに対応しています（Excel の確定仕様書はまだ読めません）' }]); return; }
   spCancel = false;
-  const rows = [], log = [], seen = new Map(), notes = [];
+  const rows = [], log = [], seen = new Map(), notes = [], marked = []; // marked：読み解き済みの PDF（取り込んだ PDF ごと）
   const t0 = Date.now();
   try {
     spProg('読み取りの準備をしています', '最初の1回だけ、少し時間がかかります', 0);
@@ -125,6 +125,7 @@ async function spRunHRB(files){
     const total = docs.reduce((n, d) => n + d.pdf.numPages, 0);
     let done = 0;
     for (const [fi, d] of docs.entries()) {
+      const pages = []; // このファイルの読み解き済みの PDF のページ（2026-10-24）
       for (let n = 1; n <= d.pdf.numPages; n++) {
         if (spCancel) throw new Error('cancel');
         const left = done ? Math.round((Date.now() - t0) / done * (total - done) / 1000) : 0;
@@ -134,18 +135,25 @@ async function spRunHRB(files){
         const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
         await pg.render({ canvasContext: g, viewport: vp }).promise;
         // 1ページに時間がかかりすぎたら（読み取りが止まったら）、読み取りを作り直してそのページは飛ばす
-        let p, tm; try { p = await Promise.race([SpPage.readPage(ocr, c, { want: spIsHRB }), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
+        let p, tm; try { p = await Promise.race([SpPage.readPage(ocr, c, { want: spIsHRB, keepCanvas: true }), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
         catch (e) { if (e && e.message === 'timeout') { try { await ocr.terminate(); } catch (x) {} spOcr = null; ocr = await spEngine(); p = { skip: '読み取りに時間がかかりすぎたため飛ばした' }; } else p = { skip: '読み取りエラー（' + (e && e.message || e) + '）' }; }
         finally { clearTimeout(tm); }
-        pg.cleanup(); c.width = c.height = 0;
+        pg.cleanup();
         const row = SpJudge.judge(p, { countryOf }), h = p.head || {};
         const L = { file: d.f.name, page: n, ser: row.ser || h.ser, model: h.model, dots: (p.dots || []).join(' ／ ') };
+        let use = false;
         if (row.skip) { L.result = '読まない'; L.memo = row.skip; }
         else if (seen.has(row.ser)) { L.result = '重なり'; L.memo = `同じシリアルが ${seen.get(row.ser)} にもあるため、先のページを使いました`; }
-        else { seen.set(row.ser, `${d.f.name} の ${n}ページ`); row.cust = hankakuName(row.cust); rows.push(row); L.result = '帳票に出した'; L.memo = row.biko || ''; }
+        else { seen.set(row.ser, `${d.f.name} の ${n}ページ`); row.cust = hankakuName(row.cust); rows.push(row); L.result = '帳票に出した'; L.memo = row.biko || ''; use = true; }
         log.push(L); done++;
+        // 読み解き済みの PDF（2026-10-24 ユーザー指示）：帳票に出したページは、実装の行を黄色、条件で付けた OP を赤字で書く。ほかのページはそのまま
+        let cv = c;
+        if (use && p.canvas && p.geom) { const pl = SpMark.plan(p, x => SpJudge.judge(x, { countryOf }), SP_HRB_OPS); if (pl) { SpMark.draw(p.canvas, p.geom, pl); cv = p.canvas; } }
+        pages.push(await SpMark.page(cv));
+        c.width = c.height = 0; if (p.canvas) p.canvas.width = p.canvas.height = 0;
       }
       d.pdf.destroy();
+      marked.push({ base: d.f.name.replace(/\.pdf$/i, '') + ' 読み解き済み', ext: '.pdf', type: 'application/pdf', data: SpMark.pdf(pages) });
     }
   } catch (e) {
     $('spProg').hidden = true;
@@ -163,6 +171,8 @@ async function spRunHRB(files){
   const am = rows.filter(r => r.biko).length;
   if (am) notes.push(['warn', `備考欄に記載のある行が ${am} 件あります（ｱﾝﾏｯﾁ有など）。確定仕様書と見比べてください`]);
   notes.push(['info', '客先・国名は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
+  const mb = marked.reduce((s, m) => s + m.data.length, 0) / 1048576;
+  notes.push(['info', `読み解き済みの PDF（${marked.length}つ・計 ${mb.toFixed(1)}MB）も同じフォルダに保存します：${marked.map(m => m.base + '.pdf').join('、')}。実装と判断した行は黄色、● ではなく条件で付けた OP は赤字です`]);
   // 保存ファイル名（2026-10-16 ユーザー指示）：「ボタン名 確定仕様書読み解き 客先の生産月」。生産月が複数あれば「早い月〜遅い月」
   const yk = t => { const m = String(t || '').match(/(\d{4})年(\d{1,2})月/); return m ? +m[1] * 100 + +m[2] : 0; };
   const yms = [...new Set(rows.map(r => r.ym).filter(yk))].sort((a, b) => yk(a) - yk(b));
@@ -171,6 +181,7 @@ async function spRunHRB(files){
     infoHtml: `<div class="save-count"><b>${rows.length}</b>件を読み解き（${log.length}ページを読みました）</div>` + notes.map(([k, t]) => `<div class="note ${k}">${esc(t)}</div>`).join(''),
     name: `${spMachine} 確定仕様書読み解き${ym}`,
     build: () => spBuildXlsx(rows, log),
+    extras: () => marked, // Excel と一緒に保存するファイル（読み解き済みの PDF）
     done: spReset,
   };
   spLast = { key: spKey(), job: saveJob };

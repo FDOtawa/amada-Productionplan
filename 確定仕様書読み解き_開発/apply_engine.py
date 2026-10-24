@@ -1,5 +1,5 @@
 """確定仕様書読み解き（HRB・SRB）の読み取りを index.html に組み込む（何度でも流せる：印の間を差し替える）
-python apply_engine.py   … 確定仕様書読み解き_開発 の spreader.js・sppage.js・spjudge.js・sp_app.js・oplist.json を埋め込む"""
+python apply_engine.py   … 確定仕様書読み解き_開発 の spreader.js・sppage.js・spjudge.js・spmark.js・sp_app.js・oplist.json を埋め込む"""
 import json, pathlib, re
 here = pathlib.Path(__file__).parent
 p = here.parent / 'index.html'; s = p.read_text(encoding='utf-8')
@@ -35,7 +35,7 @@ once('.note.info{background:#FFF7DA;color:#5A4500;border:1px solid #F0D27A}', ''
 src = lambda n: (here / n).read_text(encoding='utf-8').strip()
 ops = [{'no': o['no'], 'grp': o['grp'], 'name': o['name']} for o in json.load(open(here / 'oplist.json', encoding='utf-8'))]
 engine = ('/* SP_ENGINE_BEGIN（確定仕様書読み解き_開発 から apply_engine.py で埋め込み。直すときは向こうを直して流し直す） */\n'
-          + src('spreader.js') + '\n' + src('sppage.js') + '\n' + src('spjudge.js') + '\n'
+          + src('spreader.js') + '\n' + src('sppage.js') + '\n' + src('spjudge.js') + '\n' + src('spmark.js') + '\n'  # spmark.js：読み解き済みの PDF（2026-10-24）
           + '// OP一覧（デスクトップ「HRB読み解き.xlsx」の OP一覧。帳票の列の順・区分）\nconst SP_HRB_OPS = ' + json.dumps(ops, ensure_ascii=False) + ';\n'
           + src('sp_app.js') + '\n/* SP_ENGINE_END */')
 if '/* SP_ENGINE_BEGIN' in s:

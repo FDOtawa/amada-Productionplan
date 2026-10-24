@@ -123,14 +123,35 @@
     // rows：● の行（dots と同じ順）のオプション名の欄（行の中の最初の区切り線まで）／slots：オプションの表の最終行のあとの空いた行
     // 欄の区切り線は行の上端から下端までつながっている（文字の縦線は上下に余白がある）ので、ほぼ全部が黒い縦の列を区切り線とみなす
     const nameRight = r => { for (let x = Math.round(r.lx0 + 40 * k1); x < r.lx1 - 4; x++) if (R.dark(img, x, r.y0 + 1, x + 1, r.y1 - 1) > 0.95 || R.dark(img, x - 1, r.y0 + 1, x + 2, r.y1 - 1) > 0.9) return x; return r.lx1; };
-    const inkOf = r => R.dark(img, r.lx0 + 6 * k1, r.y0 + 4, Math.min(r.lx1, r.lx0 + 600 * k1) - 6 * k1, r.y1 - 4);
+    // 行の記入の量：欄の区切り線（縦にほぼ全部が黒い列）は数えない（空いた行でも区切り線があると「記入あり」に見えていた。2026-10-24）
+    const inkOf = r => {
+      const x0 = Math.round(r.lx0 + 6 * k1), x1 = Math.round(Math.min(r.lx1, r.lx0 + 600 * k1) - 6 * k1), y0 = Math.round(r.y0 + 4), y1 = Math.round(r.y1 - 4), hgt = Math.max(1, y1 - y0);
+      let n = 0, t = 0;
+      for (let x = x0; x < x1; x++) { let c = 0; for (let y = y0; y < y1; y++) c += img.b[y * img.w + x]; if (c / hgt < 0.7) n += c; t += hgt; }
+      return t ? n / t : 0;
+    };
     let lastUsed = -1; mr.forEach((r, i) => { if (inkOf(r) > 0.004) lastUsed = i; });
+    // 赤字を書く起点（2026-10-24 ユーザー指示）：OP の記載の最後の項目「別紙仕様書」の行。表ごとに最後に記入のある行を読んで探す
+    // （ATC の様式は「別紙仕様書」が右の表にある＝左の表の下に書くと枠の外にはみ出していた。見つからない様式はオプションの表の最終行のあと）
+    let anchor = null; const tried = [];
+    // 表の下から上へ、記入のありそうな行を読み、文字が読めた最初の行を「最後の項目」とする（スキャンの薄い汚れを記入と見誤ることがあるため。読むのは1つの表で6行まで）
+    for (const g of groups) {
+      const cand = R.rows(img, lines, g).filter(r => inkOf(r) > 0.004).reverse().slice(0, 6);
+      for (const last of cand) {
+        const t = (await ocrText(worker, R.cellCanvas(cv, img, last.lx0, last.y0 + k1, Math.min(last.lx1, last.lx0 + 300 * k1), last.y1 - k1, 2), 6)).t;
+        tried.push({ kx: Math.round(g.kx0), y0: Math.round(last.y0), y1: Math.round(last.y1), t });
+        if (t.replace(/[^一-鿿぀-ヿA-Za-z0-9]/g, '').length < 2) continue; // 文字が読めない行（汚れ・空いた行）は飛ばす
+        if (/別紙|紙仕様/.test(t)) anchor = { x0: last.lx0, y0: last.y0, x1: last.lx1, y1: last.y1 };
+        break;
+      }
+      if (anchor) break;
+    }
     const geom = {
       w: cv.width, h: cv.height,
       rows: dotRows.map(r => ({ x0: r.lx0, y0: r.y0, x1: nameRight(r), y1: r.y1 })),
       slots: mr.slice(lastUsed + 1).map(r => ({ x0: r.lx0, y0: r.y0, x1: r.lx1, y1: r.y1 })),
       rowH: mr.length ? mr.map(r => r.y1 - r.y0).sort((a, b) => a - b)[mr.length >> 1] : 26 * k1,
-      bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL,
+      bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL, anchor, tried, // tried：「別紙仕様書」を探して読んだ行（確認用）
     };
     return { head, dots, notes, rotated: cv !== cv0, form, geom, canvas: opts.keepCanvas ? cv : undefined };
   }
