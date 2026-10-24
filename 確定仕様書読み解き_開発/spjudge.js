@@ -82,6 +82,7 @@
     const kind = srb ? (t >= 220 ? 'SRB中型' : 'SRB小型') : t >= 350 ? 'HRB大型' : t === 220 ? 'HRB中型' : 'HRB小型';
     // 国名が読めないときは、客先名（納入先・契約先）から探す（アプリの countryOf）
     let cn = country(h.country);
+    if (!COUNTRIES.includes(cn) && h.country2 && COUNTRIES.includes(country(h.country2))) cn = country(h.country2); // 海外向けの HG の様式は国名が「仕向仕様」の下（2026-10-24）
     if (!COUNTRIES.includes(cn) && opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || cn;
     const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
     const shimuke = cn === '日本' ? 'DMS' : (srb && EU.has(cn)) ? 'CE' : 'EXP';
