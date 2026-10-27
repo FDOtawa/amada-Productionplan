@@ -42,7 +42,8 @@ function spProg(title, sub, frac){
 $('spProgStop').addEventListener('click', () => { spCancel = true; $('spProgSub').textContent = '中止しています（今のページを読み終えたら止まります）…'; });
 
 // 帳票（Excel）：1〜3行目が見出し（基本の列・OP の区分・OP名）、4行目から1シリアル1行。右端に備考欄。2枚目に読み取りの記録
-const SP_BASE = ['ｱﾏﾀﾞ生産月', '機種名', 'ｼﾘｱﾙ', '仕向', '国名', '客先'];
+// 客先は出さない（2026-10-27 ユーザー指示：PDF の文字のつぶれで読み違いが多く、帳票の正解率が下がるため）
+const SP_BASE = ['ｱﾏﾀﾞ生産月', '機種名', 'ｼﾘｱﾙ', '仕向', '国名'];
 const SP_GRP_FILL = { 'HRB小型・中型': 'FFFFF2CC', 'HRB大型': 'FFE2EFDA', 'SRB': 'FFFCE4D6', '全品': 'FFEDEDED', 'HG': 'FFDDEBF7' };
 function spBuildXlsx(rows, log, OPS = SP_HRB_OPS){
   const c0 = SP_BASE.length, last = c0 + OPS.length, W = last + 1;
@@ -57,7 +58,7 @@ function spBuildXlsx(rows, log, OPS = SP_HRB_OPS){
     if (k === 0 || OPS[k - 1].grp !== op.grp) { r2[c] = op.grp; st = c; }
     if (k === OPS.length - 1 || OPS[k + 1].grp !== op.grp) { if (c > st) merges.push({ s: { r: 1, c: st }, e: { r: 1, c } }); }
   });
-  const data = rows.map(x => { const a = [x.ym, x.name, x.ser, x.shimuke, x.country, x.cust]; OPS.forEach(op => a.push(x.f[op.no] ? 1 : '')); a.push(x.biko || ''); return a; });
+  const data = rows.map(x => { const a = [x.ym, x.name, x.ser, x.shimuke, x.country]; OPS.forEach(op => a.push(x.f[op.no] ? 1 : '')); a.push(x.biko || ''); return a; });
   const ws = XLSX.utils.aoa_to_sheet([r1, r2, r3, ...data]);
   ws['!merges'] = merges;
   const tw = s => [...String(s)].reduce((n, ch) => n + (/[\u0000-ÿ｡-ﾟ]/.test(ch) ? 1.2 : 2.2), 0);
@@ -144,7 +145,7 @@ async function spRunSpec(files, K){
     const readOne = async (wi, d, n) => {
       const c = await render(d, n);
       const work = async () => {
-        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes }), row = K.judge(p);
+        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes, known: K.known, countryW: K.countryW }), row = K.judge(p);
         const pl = !row.skip && p.canvas && p.geom ? SpMark.plan(p, K.judge, K.ops) : null;
         if (pl && pl.cond.length) await p.geom.locate();
         return { p, row, pl };
@@ -214,7 +215,7 @@ async function spRunSpec(files, K){
   if (xls.length) notes.push(['warn', `Excel の確定仕様書（${xls.map(f => f.name).join('、')}）は、まだ読めないため使っていません`]);
   const am = rows.filter(r => r.biko).length;
   if (am) notes.push(['warn', `備考欄に記載のある行が ${am} 件あります（ｱﾝﾏｯﾁ有など）。確定仕様書と見比べてください`]);
-  notes.push(['info', '客先・国名は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
+  notes.push(['info', '国名・OP は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
   const mb = marked.reduce((s, m) => s + m.data.length, 0) / 1048576;
   notes.push(['info', `読み解き済みの PDF（${marked.length}つ・計 ${mb.toFixed(1)}MB）も同じフォルダに保存します：${marked.map(m => m.base + '.pdf').join('、')}。実装と判断した行は黄色、● ではなく条件で付けた OP は赤字です`]);
   // 保存ファイル名（2026-10-16 ユーザー指示）：「ボタン名 確定仕様書読み解き 客先の生産月」。生産月が複数あれば「早い月〜遅い月」
@@ -240,7 +241,8 @@ function spReset(){
 }
 const spModel = h => String((h && h.model) || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
 const SP_KINDS = {
-  'HRB・SRB': { label: 'HRB・SRB', want: spIsHRB, judge: p => SpJudge.judge(p, { countryOf }), ops: SP_HRB_OPS },
+  'HRB・SRB': { label: 'HRB・SRB', want: spIsHRB, judge: p => SpJudge.judge(p, { countryOf }), ops: SP_HRB_OPS,
+    known: SpJudge.known, countryW: { chars: SpJudge.COUNTRY_CHARS, ok: SpJudge.isCountry } }, // 読み直し（2026-10-27）
   'HG': { label: 'HG', want: h => /^HG\d/.test(spModel(h)), judge: p => SpJudge.judgeHG(p, { countryOf }), ops: SP_HG_OPS, noNotes: true }, // 2026-10-24。HG の判定は備考を使わないので読まない（2026-10-27）
 };
 for (const k of Object.keys(SP_KINDS)) SP_PROCESSORS[k] = { run: files => (spLast && spLast.key === spKey() ? (saveJob = spLast.job, openSave()) : spRunSpec(files, SP_KINDS[k])) };

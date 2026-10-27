@@ -2,16 +2,29 @@
 (function (G) {
   const N = s => String(s || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
   const COUNTRIES = ['日本', '米国', '中国', '台湾', '韓国', 'インド', 'タイ', 'ベトナム', 'インドネシア', 'マレーシア', 'フィリピン', 'シンガポール', 'アラブ首長国連邦', 'トルコ', 'メキシコ', 'ブラジル', 'カナダ',
-    'オーストラリア', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー', 'ロシア', '南アフリカ', 'サウジアラビア', 'イスラエル', 'エジプト', '欧州'];
-  const EU = new Set(['欧州', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー']);
+    'オーストラリア', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー', 'ロシア', '南アフリカ', 'サウジアラビア', 'イスラエル', 'エジプト', '欧州',
+    // 2026-10-27 追加（一覧に無い国は、似た字の国名に寄せられて間違えていた）
+    'ニュージーランド', 'フィンランド', 'スウェーデン', 'ノルウェー', 'デンマーク', 'ベルギー', 'スイス', 'オーストリア', 'ポルトガル', 'アイルランド', 'ギリシャ', 'ルーマニア',
+    'スロバキア', 'スロベニア', 'クロアチア', 'ブルガリア', 'セルビア', 'ウクライナ', 'リトアニア', 'ラトビア', 'エストニア', 'ルクセンブルク', 'アルゼンチン', 'チリ', 'コロンビア', 'ペルー',
+    'パキスタン', 'バングラデシュ', 'スリランカ', 'カタール', 'クウェート', 'オマーン', 'バーレーン', 'イラン', 'イラク', 'ヨルダン', 'モロッコ', 'チュニジア', 'アルジェリア', 'ナイジェリア',
+    'ケニア', 'カザフスタン', 'ミャンマー', 'カンボジア', 'ラオス', 'モンゴル', 'ネパール'];
+  const EU = new Set(['欧州', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー',
+    'フィンランド', 'スウェーデン', 'ノルウェー', 'デンマーク', 'ベルギー', 'スイス', 'オーストリア', 'ポルトガル', 'アイルランド', 'ギリシャ', 'ルーマニア', 'スロバキア', 'スロベニア',
+    'クロアチア', 'ブルガリア', 'セルビア', 'リトアニア', 'ラトビア', 'エストニア', 'ルクセンブルク']);
+  // 国名の読み直しで使ってよい字（国名に出てくる字だけ）
+  const COUNTRY_CHARS = [...new Set(COUNTRIES.join(''))].join('');
   // 読み取った国名を、決まった国名に寄せる（含まれていればそれ、無ければ文字が一番多く重なる国名）
   function country(raw) {
     const t = N(raw).replace(/[|｜!\[\]【】()]/g, '');
     if (!t) return '';
     for (const c of COUNTRIES.slice().sort((a, b) => b.length - a.length)) if (t.includes(c)) return c;
-    let best = '', bs = 0;
-    for (const c of COUNTRIES) { const hit = [...c].filter(ch => t.includes(ch)).length / c.length; if (hit > bs) { bs = hit; best = c; } }
-    return bs >= 0.5 ? best : t;
+    let best = '', bs = 0, tie = false;
+    for (const c of COUNTRIES) {
+      const n = [...c].filter(ch => t.includes(ch)).length, hit = n / c.length;
+      if (n < 2) continue;
+      if (hit > bs) { bs = hit; best = c; tie = false; } else if (hit === bs) tie = true;
+    }
+    return bs >= 0.6 && !tie ? best : t;
   }
   const cleanName = s => String(s || '').replace(/^[^A-Za-z0-9(（【぀-ヿ一-鿿]+/, '').replace(/^[|｜!、。・ー一]+/, '').replace(/^[^\x00-\x7f【(（]{1,2}(?=[【(（A-Z])/, '').replace(/[|｜]+$/, '').trim();
   function tons(model) {
@@ -20,6 +33,7 @@
     if (two === '50') return d[2] === '0' ? 500 : 50;
     return { '80': 80, '10': 100, '13': 130, '22': 220, '35': 350, '60': 600 }[two] || 0;
   }
+  const CTRL = /ASSY|セイギョツイカ|SSY\(?[1IL][0O]\)?/; // 制御ASSY(IO)
   // ●の行の項目名から、当てはまる OP の印を作る
   function marks(dots) {
     const m = new Set();
@@ -27,8 +41,9 @@
       const t = N(raw).replace(/[《〈]/g, '(').replace(/[》〉]/g, ')');
       const sp = /^[①②③④⑤⑥⑦⑧⑨⑩]/.test(raw.trim()); // 特殊仕様の行
       // 制御ASSY(IO) の行は説明文（2人操作フットペダル・ロボットIFキット選択時…）が長く、ほかの OP の名前を含むので、この行は制御ASSY だけを見る
-      if (/択時/.test(t)) { if (/ASSY/.test(t)) m.add('制御ASSY(IO)'); continue; }
-      if (/AS-?[0O]1/.test(t) || /レーザ式安全/.test(t) || (/-[0O]1/.test(t) && /インター|安全/.test(t))) m.add('AS-01');
+      if (/択時/.test(t)) { if (CTRL.test(t)) m.add('制御ASSY(IO)'); continue; }
+      // AS-01：「AS-0l」（l を読む）「(A01)+インター」「(AO1)」（S を落とす）も（50205223・50205224）
+      if (/AS-?[0O][1IL]/.test(t) || /\(A[S5]?-?[0O][1IL]\)/.test(t) || /レーザ式安全/.test(t) || (/-[0O][1IL]/.test(t) && /インター|安全/.test(t))) m.add('AS-01');
       if (/クラウ|[ウワ]ニング/.test(t) && !/手動/.test(t)) m.add('自動ｸﾗｳﾆﾝｸﾞ'); // 「オート」→「2ート」、「クラウ」→「クフラワ」と読み違えることがある
       if (/シ.?フト/.test(t) && !/脱着|ツキアテ|突き当|突当/.test(t)) m.add('Lｼﾌﾄ'); // 「しシブフト」など
       if (/[角直]度センサ|BI-?[SL](?![A-Z])/.test(t)) { const two = /2軸|自動2/.test(t), one = /1軸|自動1/.test(t);
@@ -40,19 +55,19 @@
       if (/20P\+?AF|2OP\+?AF/.test(t)) m.add('20P+AF');
       if (/追従装置|SF-?1(224|548|584)/.test(t) && /SF-?1(224|548|584)/.test(t)) m.add(/1548/.test(t) ? '追従装置SF1548H' : /1584/.test(t) ? '追従装置SF1584' : '追従装置SF1224');
       if (/VC-?BOX|VFユニット/.test(t)) m.add('VFﾕﾆｯﾄ');
-      if (/ASSY|セイギョツイカ/.test(t)) m.add('制御ASSY(IO)'); // 「制師ASSY(10)」など
+      if (CTRL.test(t)) m.add('制御ASSY(IO)'); // 「制師ASSY(10)」「信族内SSY(10)」（A を落とす。13035872）など
       if (/^指定色/.test(t)) m.add('指定色');
       if (/AGRIP-?A/.test(t)) m.add('AGRIP-A');
       if (/NEWAGRIP-?S|油圧AGRIP-?S/.test(t)) m.add('AGRIP-S');
       // 大型：Y4軸は「ヘビーバックゲージY4軸自動」の行の ● で判断（本体の標準の行「…Y4軸選択時は「無」を選択」は見ない。2026-10-16 ユーザー確認）
       if (/ヘビーバックゲージY4|Y4軸自動/.test(t) && !/本体|選択時/.test(t)) m.add('ﾍﾋﾞｰﾊﾞｯｸｹﾞｰｼﾞY4軸');
       if (/LEDライト/.test(t) && /後方/.test(t)) m.add('後方LED');
-      if (/LED.{0,2}照明/.test(t) && !/標準/.test(t)) m.add('LED照明');
+      if (/LED.{0,3}[照昭妥属]?明/.test(t) && !/標準/.test(t)) m.add('LED照明'); // 「LED有属明有」（10301115）など
       // ﾜｰｸｾﾝｻはオプションの「ヘビーワークセンサー突き当て」の ● で判断。特殊仕様の中の「ワークセンサツキアテ」（①〜⑧の行。番号を読み落とすことがある）は特殊仕様の「1」で足りる
       if (/ワークセンサ/.test(t) && !sp && /ヘ.?ビ|突/.test(t) && !/ツキアテ|切替|特殊/.test(t)) m.add('ﾜｰｸｾﾝｻ');
       if (/漏電ブレーカ|QF1/.test(t)) m.add('QF1');
       if (/バックゲージ.{0,2}4/.test(t) && !/ヘビー/.test(t)) m.add('Y軸4軸');
-      if (/テパBOX|テーパBOX/.test(t)) m.add('ﾃﾊﾟBOX');
+      if (/テ[ーバパハ]{1,3}BOX/.test(t)) m.add('ﾃﾊﾟBOX'); // テパBOX・テーパBOX・「テバパBOX」（10301117）
     }
     return m;
   }
@@ -83,6 +98,7 @@
     // 国名が読めないときは、客先名（納入先・契約先）から探す（アプリの countryOf）
     let cn = country(h.country);
     if (!COUNTRIES.includes(cn) && h.country2 && COUNTRIES.includes(country(h.country2))) cn = country(h.country2); // 海外向けの HG の様式は国名が「仕向仕様」の下（2026-10-24）
+    if (!COUNTRIES.includes(cn) && h.countryW && COUNTRIES.includes(country(h.countryW))) cn = country(h.countryW); // 国名の字だけで読み直した結果（2026-10-27）
     if (!COUNTRIES.includes(cn) && opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || cn;
     const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
     const shimuke = cn === '日本' ? 'DMS' : (srb && EU.has(cn)) ? 'CE' : 'EXP';
@@ -108,7 +124,7 @@
       f[34] = ag || m.has('AGRIP-S'); f[35] = m.has('ﾛﾎﾞｯﾄI/F') || m.has('ﾀﾞｲﾘﾌﾄI/F'); f[36] = m.has('ﾜｰｸｾﾝｻ');
       f[37] = !m.has('QF1'); f[38] = m.has('QF1'); f[39] = m.has('制御ASSY(IO)'); f[40] = m.has('二人ﾌｯﾄ'); f[41] = atc;
     }
-    f[27] = m.has('指定色'); f[28] = !!h.tok;
+    f[27] = m.has('指定色'); f[28] = !!h.tok || /-\d{3,5}/.test(N(h.tokRaw)) || /[A-Z]{2,3}\d?-\d{4}/.test(N(p.notes));
     if (srb) {
       const exp = shimuke === 'EXP', ce = shimuke === 'CE';
       f[43] = exp && m.has('AS-01'); f[44] = ce && m.has('AS-01'); f[45] = exp && !m.has('AS-01'); f[48] = ce && !m.has('AS-01');
@@ -182,5 +198,8 @@
     let s2 = h.ser; if (/^\d{7}$/.test(s2 || '') && digits.length >= 2 && s2[0] === digits[1] && !s2.startsWith(digits.slice(0, 2))) s2 = digits[0] + s2;
     return { ym: h.ym, name, ser: s2, shimuke, country: cnOut, cust, kind: mid ? 'HG中型' : 'HG小型', f, biko: '', marks: [...m] };
   }
-  G.SpJudge = { judge, judgeHG, country, tons, marks, marksHG };
+  const KNOWN = /標準|加圧能力|テーブル長さ|ダイホルダ|受け台|ストッパ|取扱説明|ペンダント|無線デジ|バックゲージ|中間板|[バパ]ーコード|リアガード|サイドガード|突き当て|フットペダル|タッチペン|AMNC|本体|先端段差|クランプ|作動油|韓国仕様|指定色|LED/;
+  const known = t => KNOWN.test(N(t)) || marks([t]).size > 0;
+  const isCountry = t => COUNTRIES.includes(country(t));
+  G.SpJudge = { judge, judgeHG, country, tons, marks, marksHG, known, isCountry, COUNTRY_CHARS };
 })(window);

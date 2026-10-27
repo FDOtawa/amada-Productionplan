@@ -921,12 +921,12 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <li><span class="no">4</span><div><b>保存</b>：読み終わると保存の画面が開きます（保存先は設定の「02 確定仕様書読み解き」のフォルダ）。ファイル名は「<b>HRB・SRB 確定仕様書読み解き 2026年12月</b>」のように、機種のボタン名＋確定仕様書読み解き＋客先の生産月です（自由に変えられます）。保存すると、取り込んだファイルと機種の選択はクリアされます。保存をキャンセルしたときは、もう一度「読み解き開始」を押せば読み直さずに保存の画面が開きます。</div></li>
 <li><span class="no">5</span><div><b>読み解き済みの PDF</b>（2026-10-24〜）：Excel と一緒に、取り込んだ PDF ごとに「（元の名前） 読み解き済み.pdf」を<b>同じフォルダに保存</b>します（元の PDF はそのまま）。帳票で「1」にした OP の根拠の行は、オプション名の欄を<b>黄色の蛍光ペン</b>で塗ります。● ではなく条件で付けた OP（W24・W61・標準ﾌﾞﾚｰｶ・特殊仕様・ATC装置・LEDｹｰﾌﾞﾙ など）は、OP の記載の最後の項目「<b>別紙仕様書</b>」の行から1行あけて、<b>1行に1つずつ赤字</b>（2行分くらいの大きさ・黄色の蛍光ペン付き）で書きます（「別紙仕様書」が無い様式はオプションの表の最終行のあと。備考欄などの枠は使いません）。読まなかったページはそのまま入ります。ファイルは画像の PDF（130dpi）で、32ページで約7MB です。<b>文字の読み違いで判断できなかった行は塗られない</b>ので、帳票と見比べるときの目印にしてください。</div></li></ol>
 <table class="mt"><tr><th>帳票の列</th><th>中身</th></tr>
-<tr><td>ｱﾏﾀﾞ生産月・機種名・ｼﾘｱﾙ</td><td>生産年月・機種名＋仕向（客先が AAI のときは後ろに AAI）・SER №</td></tr>
+<tr><td>ｱﾏﾀﾞ生産月・機種名・ｼﾘｱﾙ</td><td>生産年月・機種名＋仕向（AAI 向けのときは後ろに AAI）・SER №</td></tr>
 <tr><td>仕向・国名</td><td>国名が日本なら DMS、ほかは EXP（SRB で欧州の国は CE）</td></tr>
-<tr><td>客先</td><td>納入先（空欄なら契約先）。半角にそろえます</td></tr>
+
 <tr><td>OP の列</td><td>OP一覧の項目ごとに、実装なら「1」。1〜3行目が見出し（OP の区分・OP名）</td></tr>
 <tr><td>備考欄</td><td>備考に「有り」と書いてあるのに ● が無いとき「ｱﾝﾏｯﾁ有」、追従装置 SF1584 に ● があるとき</td></tr></table>
-<div class="tip">2枚目のシート「<b>読み取りの記録</b>」に、ページごとの結果（帳票に出した／読まない とその理由、読み取った ● の行の文字）が残ります。客先名・国名は文字の読み取りなので、読み違いが無いか確かめてください。Excel の確定仕様書はまだ読めません（PDF だけ）。</div>
+<div class="tip">2枚目のシート「<b>読み取りの記録</b>」に、ページごとの結果（帳票に出した／読まない とその理由、読み取った ● の行の文字）が残ります。国名・OP は文字の読み取りなので、読み違いが無いか確かめてください。<b>客先名は帳票に出しません</b>（2026-10-27〜。PDF の字のつぶれで読み違いが多いため）。国名が一覧の国に当たらないときや、● の行が読めないときは、欄を広げたり大きくしたりして<b>もう1回読みます</b>。Excel の確定仕様書はまだ読めません（PDF だけ）。</div>
 <h4>HG の読み解き</h4>
 <p>HG の確定仕様書は「<b>【ベンディング 先行配布】組付仕様書(小型)</b>」「<b>組付仕様書(中型)</b>」の PDF に入っています（横向きの様式）。PDF をそのまま取り込み、機種「HG」を選んで「読み解き開始」を押すと、<b>機種名が HG のページだけ</b>を読みます（HRB・EGB・一覧表などのページは飛ばします）。読み取り・保存・読み解き済みの PDF は HRB・SRB と同じです。ファイル名は「<b>HG 確定仕様書読み解き 2026年12月</b>」のようになります。</p>
 <table class="mt"><tr><th>項目</th><th>きまり</th></tr>
@@ -935,7 +935,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <tr><td>安全装置</td><td>AS-01 は「オプション」と書いてあれば AS-01(オプション)、無ければ AS-01UL(標準)。<b>W24・W79 は安全装置（AS-01・Psen-vip）が無いときだけ</b>。PSS ユニットは Psen-vip かロボット・ATC 付きならオプション、ほかは標準</td></tr>
 <tr><td>B&amp;R・特殊仕様</td><td>B&amp;R は生産計画抽出と同じ（シリアルの下から4桁目が 8）。特殊機№があれば特殊仕様「1」</td></tr>
 <tr><td>そのほか</td><td>Bi-S・Bi-L の軸数、Lシフト、自動スライドフット・2人フット、ワークセンサ突き当て、追従装置、VF ユニット（中型）、ハイボディ、A-KAS、両手操作は「確定」の列の ● で判断します</td></tr></table>
-<div class="tip">HG の客先名は英字の読み違いが出やすい（例「AMADA CANADA」の頭の文字など）ので、帳票で確かめてください。</div>
+<div class="tip">HG も客先名は帳票に出しません。国名は客先名（納入先・契約先）から決めるので、国名に読み違いが無いか帳票で確かめてください。</div>
 <h4>生産計画抽出</h4>
 <p class="man-lead">「生産計画抽出」は、AMADA様の<b>生産計画のExcel</b>から、当社（ファイン電子機器）の制御盤に関わる<b>機種名・シリアル・JIT日（納期）</b>などを抜き出し、<b>印刷できる一覧表（Excel）</b>を作るためのものです。</p>
 <p>操作は次の<b>3ステップ</b>だけです。</p>
@@ -4068,6 +4068,12 @@ var spFiles = [], spMachine = '';
     if (opts.want && !opts.want(head)) return { head, dots: [], notes: '', rotated: cv !== cv0, form, early: true };
     { const r = await ocrText(worker, crop(tokBox(), 3, 'tok'), 7, AN + '-'); const m = r.t.match(/[A-Z]{2,3}\d?-\d{3,5}/); head.tok = m ? m[0] : ''; head.tokRaw = r.t; }
     head.country = (await ocrText(worker, crop('country'), 7)).t;
+    // opts.countryW：国名が一覧の国にならないときは、欄を上下に広げて（型の位置が少し上にずれて字の下が切れることがある）、国名に出てくる字だけで読み直す
+    // （2026-10-27：2027年1月の「日本」「韓国」「フランス」が、字の下が切れて「目朱」「走国」などになった）
+    if (opts.countryW && !opts.countryW.ok(head.country)) {
+      const [x0, y0, x1, y1] = box('country'), hh = y1 - y0;
+      head.countryW = (await ocrText(worker, crop([x0, y0 - hh * 0.15, x1, Math.min(cv.height, y1 + hh * 0.35)], 3, 'countryW'), 7, opts.countryW.chars)).t;
+    }
     if (BOX.country2) head.country2 = (await ocrText(worker, crop('country2'), 7)).t; // どちらの国名を使うかは判定（SpJudge）で決める
     // 客先名：日本語の文字の間の空白は消し、英語の単語の間の空白は1つ残す（Amada (India) Pvt. Ltd. など）
     const nameText = r => String(r.raw || '').normalize('NFKC').replace(/\s+/g, ' ').trim().replace(/ (?![!-~])|(?<![!-~]) /g, '');
@@ -4090,7 +4096,9 @@ var spFiles = [], spMachine = '';
     const rowKey = r => Math.round(r.lx0) + ':' + Math.round(r.y0), dotText = new Map(); // ● の行の読み取りを「別紙仕様書」探しで使い回す
     const rowOcr = async r => hg ? (await ocrText(worker, nameCanvas(r, 3), 7)).t : (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, dotScale), 6)).t;
     for (const r of dotRows) {
-      const t = await rowOcr(r);
+      let t = await rowOcr(r);
+      // opts.known：OP にも、よくある項目にも当たらない行は読み違いの見込みが高いので、項目名の欄だけを3倍にしてもう1回読み、両方の文字で判定する（2026-10-27：「オートクラウニング」→「2ドウララニジグ」）
+      if (!hg && opts.known && !opts.known(t)) t += ' ' + (await ocrText(worker, nameCanvas(r, 3), 7)).t;
       dots.push(t); dotText.set(rowKey(r), t);
     }
     // 備考・製造指示追記情報：表の右側の下半分を読む（横向きの様式は「製造指示追記情報」が表の右の真ん中あたりにあるので、上の 1/4 から）
@@ -4152,16 +4160,29 @@ var spFiles = [], spMachine = '';
 (function (G) {
   const N = s => String(s || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
   const COUNTRIES = ['日本', '米国', '中国', '台湾', '韓国', 'インド', 'タイ', 'ベトナム', 'インドネシア', 'マレーシア', 'フィリピン', 'シンガポール', 'アラブ首長国連邦', 'トルコ', 'メキシコ', 'ブラジル', 'カナダ',
-    'オーストラリア', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー', 'ロシア', '南アフリカ', 'サウジアラビア', 'イスラエル', 'エジプト', '欧州'];
-  const EU = new Set(['欧州', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー']);
+    'オーストラリア', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー', 'ロシア', '南アフリカ', 'サウジアラビア', 'イスラエル', 'エジプト', '欧州',
+    // 2026-10-27 追加（一覧に無い国は、似た字の国名に寄せられて間違えていた）
+    'ニュージーランド', 'フィンランド', 'スウェーデン', 'ノルウェー', 'デンマーク', 'ベルギー', 'スイス', 'オーストリア', 'ポルトガル', 'アイルランド', 'ギリシャ', 'ルーマニア',
+    'スロバキア', 'スロベニア', 'クロアチア', 'ブルガリア', 'セルビア', 'ウクライナ', 'リトアニア', 'ラトビア', 'エストニア', 'ルクセンブルク', 'アルゼンチン', 'チリ', 'コロンビア', 'ペルー',
+    'パキスタン', 'バングラデシュ', 'スリランカ', 'カタール', 'クウェート', 'オマーン', 'バーレーン', 'イラン', 'イラク', 'ヨルダン', 'モロッコ', 'チュニジア', 'アルジェリア', 'ナイジェリア',
+    'ケニア', 'カザフスタン', 'ミャンマー', 'カンボジア', 'ラオス', 'モンゴル', 'ネパール'];
+  const EU = new Set(['欧州', 'ドイツ', 'フランス', 'イタリア', 'スペイン', 'イギリス', 'オランダ', 'ポーランド', 'チェコ', 'ハンガリー',
+    'フィンランド', 'スウェーデン', 'ノルウェー', 'デンマーク', 'ベルギー', 'スイス', 'オーストリア', 'ポルトガル', 'アイルランド', 'ギリシャ', 'ルーマニア', 'スロバキア', 'スロベニア',
+    'クロアチア', 'ブルガリア', 'セルビア', 'リトアニア', 'ラトビア', 'エストニア', 'ルクセンブルク']);
+  // 国名の読み直しで使ってよい字（国名に出てくる字だけ）
+  const COUNTRY_CHARS = [...new Set(COUNTRIES.join(''))].join('');
   // 読み取った国名を、決まった国名に寄せる（含まれていればそれ、無ければ文字が一番多く重なる国名）
   function country(raw) {
     const t = N(raw).replace(/[|｜!\[\]【】()]/g, '');
     if (!t) return '';
     for (const c of COUNTRIES.slice().sort((a, b) => b.length - a.length)) if (t.includes(c)) return c;
-    let best = '', bs = 0;
-    for (const c of COUNTRIES) { const hit = [...c].filter(ch => t.includes(ch)).length / c.length; if (hit > bs) { bs = hit; best = c; } }
-    return bs >= 0.5 ? best : t;
+    let best = '', bs = 0, tie = false;
+    for (const c of COUNTRIES) {
+      const n = [...c].filter(ch => t.includes(ch)).length, hit = n / c.length;
+      if (n < 2) continue;
+      if (hit > bs) { bs = hit; best = c; tie = false; } else if (hit === bs) tie = true;
+    }
+    return bs >= 0.6 && !tie ? best : t;
   }
   const cleanName = s => String(s || '').replace(/^[^A-Za-z0-9(（【぀-ヿ一-鿿]+/, '').replace(/^[|｜!、。・ー一]+/, '').replace(/^[^\x00-\x7f【(（]{1,2}(?=[【(（A-Z])/, '').replace(/[|｜]+$/, '').trim();
   function tons(model) {
@@ -4170,6 +4191,7 @@ var spFiles = [], spMachine = '';
     if (two === '50') return d[2] === '0' ? 500 : 50;
     return { '80': 80, '10': 100, '13': 130, '22': 220, '35': 350, '60': 600 }[two] || 0;
   }
+  const CTRL = /ASSY|セイギョツイカ|SSY\(?[1IL][0O]\)?/; // 制御ASSY(IO)
   // ●の行の項目名から、当てはまる OP の印を作る
   function marks(dots) {
     const m = new Set();
@@ -4177,8 +4199,9 @@ var spFiles = [], spMachine = '';
       const t = N(raw).replace(/[《〈]/g, '(').replace(/[》〉]/g, ')');
       const sp = /^[①②③④⑤⑥⑦⑧⑨⑩]/.test(raw.trim()); // 特殊仕様の行
       // 制御ASSY(IO) の行は説明文（2人操作フットペダル・ロボットIFキット選択時…）が長く、ほかの OP の名前を含むので、この行は制御ASSY だけを見る
-      if (/択時/.test(t)) { if (/ASSY/.test(t)) m.add('制御ASSY(IO)'); continue; }
-      if (/AS-?[0O]1/.test(t) || /レーザ式安全/.test(t) || (/-[0O]1/.test(t) && /インター|安全/.test(t))) m.add('AS-01');
+      if (/択時/.test(t)) { if (CTRL.test(t)) m.add('制御ASSY(IO)'); continue; }
+      // AS-01：「AS-0l」（l を読む）「(A01)+インター」「(AO1)」（S を落とす）も（50205223・50205224）
+      if (/AS-?[0O][1IL]/.test(t) || /\(A[S5]?-?[0O][1IL]\)/.test(t) || /レーザ式安全/.test(t) || (/-[0O][1IL]/.test(t) && /インター|安全/.test(t))) m.add('AS-01');
       if (/クラウ|[ウワ]ニング/.test(t) && !/手動/.test(t)) m.add('自動ｸﾗｳﾆﾝｸﾞ'); // 「オート」→「2ート」、「クラウ」→「クフラワ」と読み違えることがある
       if (/シ.?フト/.test(t) && !/脱着|ツキアテ|突き当|突当/.test(t)) m.add('Lｼﾌﾄ'); // 「しシブフト」など
       if (/[角直]度センサ|BI-?[SL](?![A-Z])/.test(t)) { const two = /2軸|自動2/.test(t), one = /1軸|自動1/.test(t);
@@ -4190,19 +4213,19 @@ var spFiles = [], spMachine = '';
       if (/20P\+?AF|2OP\+?AF/.test(t)) m.add('20P+AF');
       if (/追従装置|SF-?1(224|548|584)/.test(t) && /SF-?1(224|548|584)/.test(t)) m.add(/1548/.test(t) ? '追従装置SF1548H' : /1584/.test(t) ? '追従装置SF1584' : '追従装置SF1224');
       if (/VC-?BOX|VFユニット/.test(t)) m.add('VFﾕﾆｯﾄ');
-      if (/ASSY|セイギョツイカ/.test(t)) m.add('制御ASSY(IO)'); // 「制師ASSY(10)」など
+      if (CTRL.test(t)) m.add('制御ASSY(IO)'); // 「制師ASSY(10)」「信族内SSY(10)」（A を落とす。13035872）など
       if (/^指定色/.test(t)) m.add('指定色');
       if (/AGRIP-?A/.test(t)) m.add('AGRIP-A');
       if (/NEWAGRIP-?S|油圧AGRIP-?S/.test(t)) m.add('AGRIP-S');
       // 大型：Y4軸は「ヘビーバックゲージY4軸自動」の行の ● で判断（本体の標準の行「…Y4軸選択時は「無」を選択」は見ない。2026-10-16 ユーザー確認）
       if (/ヘビーバックゲージY4|Y4軸自動/.test(t) && !/本体|選択時/.test(t)) m.add('ﾍﾋﾞｰﾊﾞｯｸｹﾞｰｼﾞY4軸');
       if (/LEDライト/.test(t) && /後方/.test(t)) m.add('後方LED');
-      if (/LED.{0,2}照明/.test(t) && !/標準/.test(t)) m.add('LED照明');
+      if (/LED.{0,3}[照昭妥属]?明/.test(t) && !/標準/.test(t)) m.add('LED照明'); // 「LED有属明有」（10301115）など
       // ﾜｰｸｾﾝｻはオプションの「ヘビーワークセンサー突き当て」の ● で判断。特殊仕様の中の「ワークセンサツキアテ」（①〜⑧の行。番号を読み落とすことがある）は特殊仕様の「1」で足りる
       if (/ワークセンサ/.test(t) && !sp && /ヘ.?ビ|突/.test(t) && !/ツキアテ|切替|特殊/.test(t)) m.add('ﾜｰｸｾﾝｻ');
       if (/漏電ブレーカ|QF1/.test(t)) m.add('QF1');
       if (/バックゲージ.{0,2}4/.test(t) && !/ヘビー/.test(t)) m.add('Y軸4軸');
-      if (/テパBOX|テーパBOX/.test(t)) m.add('ﾃﾊﾟBOX');
+      if (/テ[ーバパハ]{1,3}BOX/.test(t)) m.add('ﾃﾊﾟBOX'); // テパBOX・テーパBOX・「テバパBOX」（10301117）
     }
     return m;
   }
@@ -4233,6 +4256,7 @@ var spFiles = [], spMachine = '';
     // 国名が読めないときは、客先名（納入先・契約先）から探す（アプリの countryOf）
     let cn = country(h.country);
     if (!COUNTRIES.includes(cn) && h.country2 && COUNTRIES.includes(country(h.country2))) cn = country(h.country2); // 海外向けの HG の様式は国名が「仕向仕様」の下（2026-10-24）
+    if (!COUNTRIES.includes(cn) && h.countryW && COUNTRIES.includes(country(h.countryW))) cn = country(h.countryW); // 国名の字だけで読み直した結果（2026-10-27）
     if (!COUNTRIES.includes(cn) && opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || cn;
     const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn;
     const shimuke = cn === '日本' ? 'DMS' : (srb && EU.has(cn)) ? 'CE' : 'EXP';
@@ -4258,7 +4282,7 @@ var spFiles = [], spMachine = '';
       f[34] = ag || m.has('AGRIP-S'); f[35] = m.has('ﾛﾎﾞｯﾄI/F') || m.has('ﾀﾞｲﾘﾌﾄI/F'); f[36] = m.has('ﾜｰｸｾﾝｻ');
       f[37] = !m.has('QF1'); f[38] = m.has('QF1'); f[39] = m.has('制御ASSY(IO)'); f[40] = m.has('二人ﾌｯﾄ'); f[41] = atc;
     }
-    f[27] = m.has('指定色'); f[28] = !!h.tok;
+    f[27] = m.has('指定色'); f[28] = !!h.tok || /-\d{3,5}/.test(N(h.tokRaw)) || /[A-Z]{2,3}\d?-\d{4}/.test(N(p.notes));
     if (srb) {
       const exp = shimuke === 'EXP', ce = shimuke === 'CE';
       f[43] = exp && m.has('AS-01'); f[44] = ce && m.has('AS-01'); f[45] = exp && !m.has('AS-01'); f[48] = ce && !m.has('AS-01');
@@ -4332,7 +4356,10 @@ var spFiles = [], spMachine = '';
     let s2 = h.ser; if (/^\d{7}$/.test(s2 || '') && digits.length >= 2 && s2[0] === digits[1] && !s2.startsWith(digits.slice(0, 2))) s2 = digits[0] + s2;
     return { ym: h.ym, name, ser: s2, shimuke, country: cnOut, cust, kind: mid ? 'HG中型' : 'HG小型', f, biko: '', marks: [...m] };
   }
-  G.SpJudge = { judge, judgeHG, country, tons, marks, marksHG };
+  const KNOWN = /標準|加圧能力|テーブル長さ|ダイホルダ|受け台|ストッパ|取扱説明|ペンダント|無線デジ|バックゲージ|中間板|[バパ]ーコード|リアガード|サイドガード|突き当て|フットペダル|タッチペン|AMNC|本体|先端段差|クランプ|作動油|韓国仕様|指定色|LED/;
+  const known = t => KNOWN.test(N(t)) || marks([t]).size > 0;
+  const isCountry = t => COUNTRIES.includes(country(t));
+  G.SpJudge = { judge, judgeHG, country, tons, marks, marksHG, known, isCountry, COUNTRY_CHARS };
 })(window);
 // 読み解き済みの PDF（2026-10-24 ユーザー指示）：読み解いたページに印を付けて、PDF にまとめる
 // ① 帳票で「1」にした OP の根拠の ● の行は、オプション名の欄を黄色の蛍光ペンで塗る
@@ -4468,7 +4495,8 @@ function spProg(title, sub, frac){
 $('spProgStop').addEventListener('click', () => { spCancel = true; $('spProgSub').textContent = '中止しています（今のページを読み終えたら止まります）…'; });
 
 // 帳票（Excel）：1〜3行目が見出し（基本の列・OP の区分・OP名）、4行目から1シリアル1行。右端に備考欄。2枚目に読み取りの記録
-const SP_BASE = ['ｱﾏﾀﾞ生産月', '機種名', 'ｼﾘｱﾙ', '仕向', '国名', '客先'];
+// 客先は出さない（2026-10-27 ユーザー指示：PDF の文字のつぶれで読み違いが多く、帳票の正解率が下がるため）
+const SP_BASE = ['ｱﾏﾀﾞ生産月', '機種名', 'ｼﾘｱﾙ', '仕向', '国名'];
 const SP_GRP_FILL = { 'HRB小型・中型': 'FFFFF2CC', 'HRB大型': 'FFE2EFDA', 'SRB': 'FFFCE4D6', '全品': 'FFEDEDED', 'HG': 'FFDDEBF7' };
 function spBuildXlsx(rows, log, OPS = SP_HRB_OPS){
   const c0 = SP_BASE.length, last = c0 + OPS.length, W = last + 1;
@@ -4483,7 +4511,7 @@ function spBuildXlsx(rows, log, OPS = SP_HRB_OPS){
     if (k === 0 || OPS[k - 1].grp !== op.grp) { r2[c] = op.grp; st = c; }
     if (k === OPS.length - 1 || OPS[k + 1].grp !== op.grp) { if (c > st) merges.push({ s: { r: 1, c: st }, e: { r: 1, c } }); }
   });
-  const data = rows.map(x => { const a = [x.ym, x.name, x.ser, x.shimuke, x.country, x.cust]; OPS.forEach(op => a.push(x.f[op.no] ? 1 : '')); a.push(x.biko || ''); return a; });
+  const data = rows.map(x => { const a = [x.ym, x.name, x.ser, x.shimuke, x.country]; OPS.forEach(op => a.push(x.f[op.no] ? 1 : '')); a.push(x.biko || ''); return a; });
   const ws = XLSX.utils.aoa_to_sheet([r1, r2, r3, ...data]);
   ws['!merges'] = merges;
   const tw = s => [...String(s)].reduce((n, ch) => n + (/[\u0000-ÿ｡-ﾟ]/.test(ch) ? 1.2 : 2.2), 0);
@@ -4570,7 +4598,7 @@ async function spRunSpec(files, K){
     const readOne = async (wi, d, n) => {
       const c = await render(d, n);
       const work = async () => {
-        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes }), row = K.judge(p);
+        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes, known: K.known, countryW: K.countryW }), row = K.judge(p);
         const pl = !row.skip && p.canvas && p.geom ? SpMark.plan(p, K.judge, K.ops) : null;
         if (pl && pl.cond.length) await p.geom.locate();
         return { p, row, pl };
@@ -4640,7 +4668,7 @@ async function spRunSpec(files, K){
   if (xls.length) notes.push(['warn', `Excel の確定仕様書（${xls.map(f => f.name).join('、')}）は、まだ読めないため使っていません`]);
   const am = rows.filter(r => r.biko).length;
   if (am) notes.push(['warn', `備考欄に記載のある行が ${am} 件あります（ｱﾝﾏｯﾁ有など）。確定仕様書と見比べてください`]);
-  notes.push(['info', '客先・国名は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
+  notes.push(['info', '国名・OP は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
   const mb = marked.reduce((s, m) => s + m.data.length, 0) / 1048576;
   notes.push(['info', `読み解き済みの PDF（${marked.length}つ・計 ${mb.toFixed(1)}MB）も同じフォルダに保存します：${marked.map(m => m.base + '.pdf').join('、')}。実装と判断した行は黄色、● ではなく条件で付けた OP は赤字です`]);
   // 保存ファイル名（2026-10-16 ユーザー指示）：「ボタン名 確定仕様書読み解き 客先の生産月」。生産月が複数あれば「早い月〜遅い月」
@@ -4666,7 +4694,8 @@ function spReset(){
 }
 const spModel = h => String((h && h.model) || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
 const SP_KINDS = {
-  'HRB・SRB': { label: 'HRB・SRB', want: spIsHRB, judge: p => SpJudge.judge(p, { countryOf }), ops: SP_HRB_OPS },
+  'HRB・SRB': { label: 'HRB・SRB', want: spIsHRB, judge: p => SpJudge.judge(p, { countryOf }), ops: SP_HRB_OPS,
+    known: SpJudge.known, countryW: { chars: SpJudge.COUNTRY_CHARS, ok: SpJudge.isCountry } }, // 読み直し（2026-10-27）
   'HG': { label: 'HG', want: h => /^HG\d/.test(spModel(h)), judge: p => SpJudge.judgeHG(p, { countryOf }), ops: SP_HG_OPS, noNotes: true }, // 2026-10-24。HG の判定は備考を使わないので読まない（2026-10-27）
 };
 for (const k of Object.keys(SP_KINDS)) SP_PROCESSORS[k] = { run: files => (spLast && spLast.key === spKey() ? (saveJob = spLast.job, openSave()) : spRunSpec(files, SP_KINDS[k])) };

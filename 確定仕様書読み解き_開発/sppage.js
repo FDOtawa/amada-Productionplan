@@ -102,6 +102,12 @@
     if (opts.want && !opts.want(head)) return { head, dots: [], notes: '', rotated: cv !== cv0, form, early: true };
     { const r = await ocrText(worker, crop(tokBox(), 3, 'tok'), 7, AN + '-'); const m = r.t.match(/[A-Z]{2,3}\d?-\d{3,5}/); head.tok = m ? m[0] : ''; head.tokRaw = r.t; }
     head.country = (await ocrText(worker, crop('country'), 7)).t;
+    // opts.countryW：国名が一覧の国にならないときは、欄を上下に広げて（型の位置が少し上にずれて字の下が切れることがある）、国名に出てくる字だけで読み直す
+    // （2026-10-27：2027年1月の「日本」「韓国」「フランス」が、字の下が切れて「目朱」「走国」などになった）
+    if (opts.countryW && !opts.countryW.ok(head.country)) {
+      const [x0, y0, x1, y1] = box('country'), hh = y1 - y0;
+      head.countryW = (await ocrText(worker, crop([x0, y0 - hh * 0.15, x1, Math.min(cv.height, y1 + hh * 0.35)], 3, 'countryW'), 7, opts.countryW.chars)).t;
+    }
     if (BOX.country2) head.country2 = (await ocrText(worker, crop('country2'), 7)).t; // どちらの国名を使うかは判定（SpJudge）で決める
     // 客先名：日本語の文字の間の空白は消し、英語の単語の間の空白は1つ残す（Amada (India) Pvt. Ltd. など）
     const nameText = r => String(r.raw || '').normalize('NFKC').replace(/\s+/g, ' ').trim().replace(/ (?![!-~])|(?<![!-~]) /g, '');
@@ -124,7 +130,9 @@
     const rowKey = r => Math.round(r.lx0) + ':' + Math.round(r.y0), dotText = new Map(); // ● の行の読み取りを「別紙仕様書」探しで使い回す
     const rowOcr = async r => hg ? (await ocrText(worker, nameCanvas(r, 3), 7)).t : (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, dotScale), 6)).t;
     for (const r of dotRows) {
-      const t = await rowOcr(r);
+      let t = await rowOcr(r);
+      // opts.known：OP にも、よくある項目にも当たらない行は読み違いの見込みが高いので、項目名の欄だけを3倍にしてもう1回読み、両方の文字で判定する（2026-10-27：「オートクラウニング」→「2ドウララニジグ」）
+      if (!hg && opts.known && !opts.known(t)) t += ' ' + (await ocrText(worker, nameCanvas(r, 3), 7)).t;
       dots.push(t); dotText.set(rowKey(r), t);
     }
     // 備考・製造指示追記情報：表の右側の下半分を読む（横向きの様式は「製造指示追記情報」が表の右の真ん中あたりにあるので、上の 1/4 から）
