@@ -12,17 +12,25 @@ async function spLibB64(k){ // 文字にした中身（base64）
   for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
   return btoa(s);
 }
-let spOcr = null; // 文字の読み取り（tesseract）は一度作ったら使い回す
+// 文字の読み取り（tesseract）は一度作ったら使い回す。時間短縮のため、いくつか作って複数のページを同時に読む（2026-10-27 ユーザー指示「70枚で25分 → 3分ほどに」）
+// 数は PC の CPU の数から（1つは画面と画像の処理に残す。多すぎるとメモリを使うので4まで）
+const SP_WORKERS = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1));let spOcr = null, spTw = null;
+async function spMakeWorker(){
+  if (!spTw) {
+    // 本体（core）・日本語の学習データ・worker を1つのスクリプトにする（オフラインでも外から読み込まないように）。
+    // 学習データは worker の中の fetch を差し替えて渡す（langPath の http://sp-offline はダミー）
+    const feed = `;(function(){var b=atob(${JSON.stringify(await spLibB64('jpn'))}),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);b=null;
+var of=self.fetch;self.fetch=function(x,o){return /traineddata/.test(String(x))?Promise.resolve(new Response(u.slice(0))):of(x,o);};})();\n`;
+    spTw = URL.createObjectURL(new Blob([await spLibText('tessCore'), '\n;\n', feed, await spLibText('tessWorker')], { type: 'text/javascript' }));
+  }
+  const mk = Tesseract.createWorker('jpn', 1, { workerPath: spTw, workerBlobURL: false, langPath: 'http://sp-offline', cacheMethod: 'none', gzip: true, errorHandler: () => {} });
+  return Promise.race([mk, new Promise((_, ng) => setTimeout(() => ng(new Error('文字の読み取りの準備ができませんでした')), 90000))]);
+}
 async function spEngine(){
   if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([await spLibText('pdfWorker')], { type: 'text/javascript' }));
   if (spOcr) return spOcr;
-  // 本体（core）・日本語の学習データ・worker を1つのスクリプトにする（オフラインでも外から読み込まないように）。
-  // 学習データは worker の中の fetch を差し替えて渡す（langPath の http://sp-offline はダミー）
-  const feed = `;(function(){var b=atob(${JSON.stringify(await spLibB64('jpn'))}),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);b=null;
-var of=self.fetch;self.fetch=function(x,o){return /traineddata/.test(String(x))?Promise.resolve(new Response(u.slice(0))):of(x,o);};})();\n`;
-  const tw = URL.createObjectURL(new Blob([await spLibText('tessCore'), '\n;\n', feed, await spLibText('tessWorker')], { type: 'text/javascript' }));
-  const mk = Tesseract.createWorker('jpn', 1, { workerPath: tw, workerBlobURL: false, langPath: 'http://sp-offline', cacheMethod: 'none', gzip: true, errorHandler: () => {} });
-  spOcr = await Promise.race([mk, new Promise((_, ng) => setTimeout(() => ng(new Error('文字の読み取りの準備ができませんでした')), 90000))]);
+  const first = await spMakeWorker(); // 1つ目で学習データなどの準備を済ませてから、残りを同時に作る
+  spOcr = [first, ...await Promise.all(Array.from({ length: SP_WORKERS - 1 }, spMakeWorker))];
   return spOcr;
 }
 const spIsHRB = h => /^(HRBC|HRB|SRB)\d/.test(String((h && h.model) || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase());
@@ -118,39 +126,69 @@ async function spRunSpec(files, K){
   const t0 = Date.now();
   try {
     spProg('読み取りの準備をしています', '最初の1回だけ、少し時間がかかります', 0);
-    let ocr = await spEngine();
+    const nt = document.querySelector('#spProg .spp-note'); // 進み具合の画面の説明（2026-10-27：同時に読むようにした）
+    if (nt) nt.textContent = 'いくつかのページを同時に読み取っています。読み終わると保存の画面が開きます。読み取り中はほかの操作はできません。';
+    const ocr = await spEngine();
     // ページ数を先に数える（進み具合の表示のため）
     const docs = [];
     for (const f of pdfs) docs.push({ f, pdf: await pdfjsLib.getDocument({ data: new Uint8Array(await f.file.arrayBuffer()) }).promise });
     const total = docs.reduce((n, d) => n + d.pdf.numPages, 0);
-    let done = 0;
+    const render = async (d, n) => {
+      const pg = await d.pdf.getPage(n), vp = pg.getViewport({ scale: 3 }), c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height;
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+      await pg.render({ canvasContext: g, viewport: vp }).promise; pg.cleanup(); return c;
+    };
+    // 1ページ分：読む → 判定 → 読み解き済みの PDF のページ（2026-10-24 ユーザー指示：帳票に出すページは実装の行を黄色、条件で付けた OP を赤字。ほかのページはそのまま）
+    // 「別紙仕様書」探し（赤字の場所）は赤字を書くページだけ（2026-10-27）
+    const readOne = async (wi, d, n) => {
+      const c = await render(d, n);
+      const work = async () => {
+        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes }), row = K.judge(p);
+        const pl = !row.skip && p.canvas && p.geom ? SpMark.plan(p, K.judge, K.ops) : null;
+        if (pl && pl.cond.length) await p.geom.locate();
+        return { p, row, pl };
+      };
+      // 1ページに時間がかかりすぎたら（読み取りが止まったら）、その読み取りを作り直してそのページは飛ばす
+      let r, tm; try { r = await Promise.race([work(), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
+      catch (e) {
+        if (e && e.message === 'timeout') { try { await ocr[wi].terminate(); } catch (x) {} ocr[wi] = await spMakeWorker(); r = { p: { skip: '読み取りに時間がかかりすぎたため飛ばした' } }; }
+        else r = { p: { skip: '読み取りエラー（' + (e && e.message || e) + '）' } };
+        r.row = K.judge(r.p);
+      } finally { clearTimeout(tm); }
+      const { p } = r;
+      let cv = c; if (r.pl) { SpMark.draw(p.canvas, p.geom, r.pl); cv = p.canvas; }
+      r.jpg = await SpMark.page(cv); r.drawn = !!r.pl;
+      c.width = c.height = 0; if (p.canvas) p.canvas.width = p.canvas.height = 0; p.canvas = null;
+      return r;
+    };
+    // 複数のページを同時に読む（読み取りの数だけ）。結果はページの順にまとめる
+    const tasks = []; docs.forEach(d => { for (let n = 1; n <= d.pdf.numPages; n++) tasks.push({ d, n }); });
+    const res = new Array(tasks.length); let next = 0, done = 0;
+    const prog = t => { const left = done ? Math.round((Date.now() - t0) / done * (total - done) / 1000) : 0;
+      spProg(`確定仕様書を読み解いています（${done} / ${total} ページ）`, (t ? `ファイル${docs.indexOf(t.d) + 1}「${t.d.f.name}」 ${t.n} / ${t.d.pdf.numPages} ページまで` : `${ocr.length}ページずつ同時に読んでいます`) + (left ? `　残り 約${left >= 60 ? Math.ceil(left / 60) + '分' : left + '秒'}` : ''), done / total); };
+    prog(null);
+    await Promise.all(ocr.map(async (_, wi) => {
+      while (next < tasks.length) {
+        if (spCancel) throw new Error('cancel');
+        const i = next++, t = tasks[i];
+        res[i] = await readOne(wi, t.d, t.n); done++; prog(t);
+      }
+    }));
+    if (spCancel) throw new Error('cancel');
+    let i = 0;
     for (const [fi, d] of docs.entries()) {
       const pages = []; let used = 0; // このファイルの読み解き済みの PDF のページと、帳票に出したページの数（2026-10-24）
-      for (let n = 1; n <= d.pdf.numPages; n++) {
-        if (spCancel) throw new Error('cancel');
-        const left = done ? Math.round((Date.now() - t0) / done * (total - done) / 1000) : 0;
-        spProg(`確定仕様書を読み解いています（${done + 1} / ${total} ページ）`, `ファイル${fi + 1}「${d.f.name}」 ${n} / ${d.pdf.numPages} ページ` + (left ? `　残り 約${left >= 60 ? Math.ceil(left / 60) + '分' : left + '秒'}` : ''), done / total);
-        const pg = await d.pdf.getPage(n), vp = pg.getViewport({ scale: 3 }), c = document.createElement('canvas');
-        c.width = vp.width; c.height = vp.height;
-        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
-        await pg.render({ canvasContext: g, viewport: vp }).promise;
-        // 1ページに時間がかかりすぎたら（読み取りが止まったら）、読み取りを作り直してそのページは飛ばす
-        let p, tm; try { p = await Promise.race([SpPage.readPage(ocr, c, { want: K.want, keepCanvas: true }), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
-        catch (e) { if (e && e.message === 'timeout') { try { await ocr.terminate(); } catch (x) {} spOcr = null; ocr = await spEngine(); p = { skip: '読み取りに時間がかかりすぎたため飛ばした' }; } else p = { skip: '読み取りエラー（' + (e && e.message || e) + '）' }; }
-        finally { clearTimeout(tm); }
-        pg.cleanup();
-        const row = K.judge(p), h = p.head || {};
+      for (let n = 1; n <= d.pdf.numPages; n++, i++) {
+        const { p, row, jpg, drawn } = res[i], h = p.head || {};
         const L = { file: d.f.name, page: n, ser: row.ser || h.ser, model: h.model, dots: (p.dots || []).join(' ／ ') };
         let use = false;
         if (row.skip) { L.result = '読まない'; L.memo = row.skip; }
         else if (seen.has(row.ser)) { L.result = '重なり'; L.memo = `同じシリアルが ${seen.get(row.ser)} にもあるため、先のページを使いました`; }
         else { seen.set(row.ser, `${d.f.name} の ${n}ページ`); row.cust = hankakuName(row.cust); rows.push(row); L.result = '帳票に出した'; L.memo = row.biko || ''; use = true; used++; }
-        log.push(L); done++;
-        // 読み解き済みの PDF（2026-10-24 ユーザー指示）：帳票に出したページは、実装の行を黄色、条件で付けた OP を赤字で書く。ほかのページはそのまま
-        let cv = c;
-        if (use && p.canvas && p.geom) { const pl = SpMark.plan(p, K.judge, K.ops); if (pl) { SpMark.draw(p.canvas, p.geom, pl); cv = p.canvas; } }
-        pages.push(await SpMark.page(cv));
-        c.width = c.height = 0; if (p.canvas) p.canvas.width = p.canvas.height = 0;
+        log.push(L);
+        // 重なりのページは印を付けない（めったに無いので、そのときだけ読み直して印の無いページにする）
+        pages.push(drawn && !use ? await SpMark.page(await render(d, n)) : jpg);
       }
       d.pdf.destroy();
       // 帳票に1行も出さなかったファイル（選んだ機種のページが無い）は、読み解き済みの PDF を作らない
@@ -203,6 +241,6 @@ function spReset(){
 const spModel = h => String((h && h.model) || '').normalize('NFKC').replace(/\s+/g, '').toUpperCase();
 const SP_KINDS = {
   'HRB・SRB': { label: 'HRB・SRB', want: spIsHRB, judge: p => SpJudge.judge(p, { countryOf }), ops: SP_HRB_OPS },
-  'HG': { label: 'HG', want: h => /^HG\d/.test(spModel(h)), judge: p => SpJudge.judgeHG(p, { countryOf }), ops: SP_HG_OPS }, // 2026-10-24
+  'HG': { label: 'HG', want: h => /^HG\d/.test(spModel(h)), judge: p => SpJudge.judgeHG(p, { countryOf }), ops: SP_HG_OPS, noNotes: true }, // 2026-10-24。HG の判定は備考を使わないので読まない（2026-10-27）
 };
 for (const k of Object.keys(SP_KINDS)) SP_PROCESSORS[k] = { run: files => (spLast && spLast.key === spKey() ? (saveJob = spLast.job, openSave()) : spRunSpec(files, SP_KINDS[k])) };
