@@ -1238,7 +1238,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <p class="ex">保存名の例：HRB大型 AMD生産計画 2026.10.10</p></div><div class="mblk" data-m="レーザ"><h4>レーザ</h4>
 <p>レーザは土岐工場と富士宮工場で作るため、<b>2つのファイル</b>を合わせて1つの帳票にします。2つがそろっていないとエラーになります。</p>
 <ul><li><b>① ファイン電子用生産機資料</b>（土岐）：HRB 土岐と同じファイル。</li>
-<li><b>② レーザ日程表</b>（富士宮）：シート <b>EN-RI・EN-VN・OR・AAI・AESA</b> を読みます（REG・FLW1500 は使いません）。どのシートも3行目が見出し、6行目からデータです。</li>
+<li><b>② レーザ日程表</b>（富士宮）：シート <b>EN-RI・EN-VN・OR・AAI・AESA</b> を読みます（REG・FLW1500 は使いません）。見出しは上の方で A列が「生産年月」の行（ふつうは3行目）です。<b>データは、見出しより下で A列に生産月（2026/11 など）がある最初の行から</b>読みます（ファイルによって見出しやデータの始まりの行が動くため）。AESA のシートが「ASEA」という名前でも AESA のシートとして読みます。</li>
 <li>どちらも、<b>機種名の左から2文字が「EN」「VS」「VN」「OR」の行</b>だけを使います。ただし <b>EN6225AJ・VN6225AJ</b>（.EXP などが付いたものも）は対象外です。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th><th>① 生産機資料</th><th>② レーザ日程表</th></tr></thead><tbody>
 <tr><td>製造年月</td><td>B列（202610 → 2026年10月）</td><td>A列（2026/10 → 2026年10月）</td></tr>
@@ -1776,7 +1776,8 @@ function extractKoban(XLSX, ws){
 
 // 「レーザ」（2026-10-14 ユーザー指示）：レーザは土岐・富士宮工場で作るため、2つのファイルを合わせる（2つそろわないとエラー）
 // ①ファイン電子用生産機資料（土岐）：F列の機種名の左2文字が EN・VS・VN・OR の行。製造年月＝B列、機種名＝F、シリアル＝H、引き当て先＝I、国名は I列→G列、JIT日＝J列（日付以外は「未定」）、着地＝土岐
-// ②レーザ日程表（富士宮）：シート EN-RI・EN-VN・OR・AAI・AESA（REG・FLW1500 は使わない）。3行目が見出し、6行目から。製造年月＝A列、機種名＝F、シリアル＝H、
+// ②レーザ日程表（富士宮）：シート EN-RI・EN-VN・OR・AAI・AESA（REG・FLW1500 は使わない）。製造年月＝A列、機種名＝F、シリアル＝H、
+//   見出しの行・データの開始行はファイルによって動く（2026-10-28 ユーザー指示）→ 見出しは上の方で A列が「生産年月」の行、データは見出しより下で A列に生産月（2026/11 など）がある最初の行から（laserFrame）
 //   引き当て先＝I、国名は I列→L列、JIT日＝T列（着手日）、着地＝AAI シート→AAI/平井、AESA シート→AESA/平井、ほかのシート→富士宮
 // 仕向は機種名の末尾から：EXP（.EXP も）→EXP、CE→CE、AAI→EXP（国名 米国）、何も無い→DMS（国名 日本）。AESA シートの行は機種名にかかわらず CE（国名 欧州）
 const LASER_SHEETS = ['EN-RI', 'EN-VN', 'OR', 'AAI', 'AESA'];
@@ -1785,7 +1786,20 @@ const isLaserModel = m => /^(EN|VS|VN|OR)/.test(String(m).normalize('NFKC').trim
 // 対象外の機種（2026-10-16 ユーザー指示：EN6225AJ・VN6225AJ。.EXP などの付いたものも含む）
 const LASER_EXCLUDE = [/^EN6225AJ/, /^VN6225AJ/];
 const laserExcluded = m => LASER_EXCLUDE.some(re => re.test(String(m).normalize('NFKC').replace(/\s+/g, '').toUpperCase()));
-const laserSchedSheets = wb => LASER_SHEETS.map(n => findSheet(wb, n)).filter(Boolean);
+// AESA のシートは「ASEA」と打ち間違えられていることがある（2026-10-28：レーザ日程表(11～4月)_20261027）→ どちらも AESA のシートとして読む
+const laserSchedSheets = wb => LASER_SHEETS.map(n => findSheet(wb, n) || (n === 'AESA' ? findSheet(wb, 'ASEA') : null)).filter(Boolean);
+const isLaserAesaSheet = n => /^(AESA|ASEA)$/.test(norm(n).toUpperCase());
+// 見出しの行とデータの開始行（2026-10-28 ユーザー指示「データ開始行は、A列の生産月（2026/11など）が確認できた行を先頭行とする」）。
+// 見出し：上から10行のうち A列が「生産年月」の行（無ければ3行目）。データ：見出しより下で、A列が生産月（日付、または「2026/11」などの文字）の最初の行
+const isProdMonthCell = c => !!c && (c.v instanceof Date || /^\d{4}\s*[\/\-.年]\s*\d{1,2}/.test(norm(c.w ?? c.v)));
+function laserFrame(XLSX, ws){
+  const range = XLSX.utils.decode_range(ws['!ref']), at = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
+  let head = 2;
+  for (let r = 0; r <= Math.min(9, range.e.r); r++) { const c = at(r, 0); if (c && norm(c.v).replace(/\s/g, '').includes('生産年月')) { head = r; break; } }
+  let first = -1;
+  for (let r = head + 1; r <= range.e.r; r++) if (isProdMonthCell(at(r, 0))) { first = r; break; }
+  return { head, first };
+}
 const isLaserSched = wb => laserSchedSheets(wb).length > 0;
 function laserDest(model, aesaSheet){
   if (aesaSheet) return 'CE';
@@ -1806,9 +1820,10 @@ function validateLaser(XLSX, wb){
     const errs = [];
     laserSchedSheets(wb).forEach(n => {
       const ws = wb.Sheets[n]; if (!ws || !ws['!ref']) return;
-      const h = c => { const cell = ws[XLSX.utils.encode_cell({ r: 2, c })]; return cell ? norm(cell.v).replace(/\s/g, '') : ''; };
+      const { head } = laserFrame(XLSX, ws);
+      const h = c => { const cell = ws[XLSX.utils.encode_cell({ r: head, c })]; return cell ? norm(cell.v).replace(/\s/g, '') : ''; };
       const miss = [[0, 'A', '生産年月'], [5, 'F', '機種名'], [7, 'H', 'Ser.'], [8, 'I', '顧客'], [11, 'L', '仕向地'], [19, 'T', '着手日']].filter(([c, , w]) => !h(c).includes(w.replace(/\s/g, '')));
-      if (miss.length) errs.push(`項目の定義：シート「${n}」の3行目に見出し（${miss.map(([, l, w]) => `${l}列「${w}」`).join('、')}）がありません。`);
+      if (miss.length) errs.push(`項目の定義：シート「${n}」の${head + 1}行目に見出し（${miss.map(([, l, w]) => `${l}列「${w}」`).join('、')}）がありません。`);
     });
     return errs;
   }
@@ -1828,8 +1843,9 @@ function extractLaser(XLSX, wb){
       const ws = wb.Sheets[n]; if (!ws || !ws['!ref']) return;
       const range = XLSX.utils.decode_range(ws['!ref']), at = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
       const text = (r, c) => { const cell = at(r, c); return cell ? String(cell.w !== undefined && typeof cell.v !== 'number' && !(cell.v instanceof Date) ? cell.w : (cell.v instanceof Date ? '' : cell.v)).trim() : ''; };
-      const aesa = norm(n).toUpperCase() === 'AESA', aai = norm(n).toUpperCase() === 'AAI';
-      for (let r = 5; r <= range.e.r; r++) {
+      const aesa = isLaserAesaSheet(n), aai = norm(n).toUpperCase() === 'AAI';
+      const { first } = laserFrame(XLSX, ws); if (first < 0) return; // A列に生産月の行が無いシートはデータ無し
+      for (let r = first; r <= range.e.r; r++) {
         const model = text(r, 5); if (!model || norm(model) === '機種名') continue; // 途中の見出しの行は飛ばす
         const serial = text(r, 7);
         if (!isLaserModel(model)) { excluded.push({ row: r + 1, model, serial, reason: `シート「${n}」：機種名が EN・VS・VN・OR ではない` }); continue; }
