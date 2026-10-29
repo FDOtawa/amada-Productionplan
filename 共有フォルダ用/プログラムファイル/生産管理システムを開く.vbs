@@ -21,6 +21,9 @@ If fso.FileExists(src) Then
   Err.Clear
   If fso.FileExists(ico) Then fso.CopyFile ico, fso.BuildPath(dstDir, "icon.ico"), True
   Err.Clear
+  ' 2026-10-29：操作マニュアル（manual フォルダ）もコピーする（アプリから manual\index.html を開くため）
+  If fso.FolderExists(fso.BuildPath(srcDir, "manual")) Then fso.CopyFolder fso.BuildPath(srcDir, "manual"), fso.BuildPath(dstDir, "manual"), True
+  Err.Clear
   If fso.FileExists(fso.BuildPath(dstDir, OLDAPP & ".html")) Then fso.DeleteFile fso.BuildPath(dstDir, OLDAPP & ".html"), True ' 名前を変える前のコピーは消す
   Err.Clear
   If fso.FileExists(fso.BuildPath(dstDir, OLDAPP2 & ".html")) Then fso.DeleteFile fso.BuildPath(dstDir, OLDAPP2 & ".html"), True
