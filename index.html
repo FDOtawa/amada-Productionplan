@@ -1059,7 +1059,7 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <li>機械が見つからないロボット（ASTRO にだけある）は、機種を補って出します（メカシリアルは空欄、ロボットシリアルは ATC盤の行にも書きます。例：10209993 → EGB1303ARE の3行）。</li></ul>
 <h4>納入先</h4>
 <table class="mt"><thead><tr><th>盤</th><th>機械・仕向</th><th>納入先</th></tr></thead><tbody>
-<tr><td rowspan="4">ATC盤</td><td>EGB6020AE・DMS</td><td>㈱ｱｻﾋ</td></tr>
+<tr><td rowspan="4">ATC盤</td><td>EGB6020AE・DMS・EXP・CE（仕向に関係なく）</td><td>㈱ｱｻﾋ</td></tr>
 <tr><td>EGB13〇〇AE／ARE・DMS</td><td>ITｴﾝｼﾞ</td></tr>
 <tr><td>上に当たらない標準機</td><td>富士宮</td></tr><tr><td>小型機</td><td>土岐</td></tr>
 <tr><td rowspan="3">LC盤</td><td>標準機</td><td>富士宮</td></tr>
@@ -2105,7 +2105,7 @@ const K_OF = { '010': '10K', '020': '20K', '080': '80K' };
 function egbShipTo(panel, model, dest, kind, ym){
   const d = (String(model).normalize('NFKC').toUpperCase().match(/^EGB(\d{4})/) || [])[1] || '', f = egbForm(model);
   if (panel === 'ATC盤') {
-    if (d === '6020' && f === 'AE' && dest === 'DMS') return '㈱ｱｻﾋ';
+    if (d === '6020' && f === 'AE') return '㈱ｱｻﾋ'; // 2026-11-05 ユーザー指示：DMS に加えて EXP・CE も ㈱ｱｻﾋ（AESA シートの行は呼び出し側で富士宮）
     if (d.startsWith('13') && (f === 'AE' || f === 'ARE') && dest === 'DMS') return 'ITｴﾝｼﾞ';
     return kind === '標準機' ? '富士宮' : kind === '小型機' ? '土岐' : '';
   }
