@@ -1079,7 +1079,8 @@ html[data-theme="black"] .sp-opt.spare{background:transparent;color:#7D868F}
 <ul><li>A列のシリアルは「TS」を消さず、そのまま使います（例：EGRE6037）。</li>
 <li>JIT日と制御盤JIT日は、どちらも J列（着手日）です。</li>
 <li>納入先は、小型機でも<b>すべて「富士宮」</b>です。</li>
-<li>客先名は「AESA」、国名は「欧州」です。ロボットは AESA シートの EGBROBOT から、種類と下3桁で探します（例：EGRE6037 ↔ EGRB1037）。</li></ul>
+<li>客先名は「AESA」、国名は「欧州」です。ロボットは AESA シートの EGBROBOT から、種類と下3桁で探します（例：EGRE6037 ↔ EGRB1037）。</li>
+<li><b>列の並びが変わっても読めます</b>：Ser.・生産月・機種名・顧客・着手日の列は、1行目の見出しの名前で探します（2026年11月4日版の対比表は、AESA シートだけ「生産月・No.・機種名・Ser.…」の並びになっていました）。見出しが見つからないときはエラーでお知らせします。</li></ul>
 <table class="mt"><thead><tr><th>出力する列</th></tr></thead><tbody><tr><td>アマダ生産月／機種名／メカシリアル／ロボットシリアル／仕向／国名／客先名／納入先／JIT日／制御盤JIT日／K数</td></tr></tbody></table>
 <h4>行の色分け（網掛け）</h4>
 <p>帳票の行（A〜K列）を、次のように色で塗り分けます。</p>
@@ -2485,15 +2486,15 @@ const egbDaysChanged = d => Object.keys(EGB_DAYS_DEFAULT).some(k => d[k] !== EGB
 const egbSubDays = (panel, shipTo) => { const d = egbDays(); return panel === 'ATC盤' ? (shipTo === '㈱ｱｻﾋ' ? d.asahi : shipTo === 'ITｴﾝｼﾞ' ? d.itengi : d.atc) : panel === 'LC盤' ? d.lc : d.ld; };
 const labelYM = t => { const m = String(t).match(/(\d{4})年(\d{1,2})月/); return m ? { y: +m[1], m: +m[2] } : null; };
 // シートの行を読む（A列のシリアルは prefix を消す。AESA はそのまま）
-// 3行目以降で D列（機種名）がある行。シリアルが空欄の行も読む（ロボット EGBRBT080E など）
+// 3行目以降で機種名の列（ふつうは D列。見出しの名前で探す）がある行。シリアルが空欄の行も読む（ロボット EGBRBT080E など）
 function egbSheetRows(XLSX, ws, prefix){
   if (!ws || !ws['!ref']) return [];
-  const range = XLSX.utils.decode_range(ws['!ref']), out = [];
+  const range = XLSX.utils.decode_range(ws['!ref']), out = [], k = taihiCols(XLSX, ws);
   const v = (r, c) => { const cell = ws[XLSX.utils.encode_cell({ r, c })]; return cell ? (cell.v instanceof Date ? cell.v : trimAll(cell.w !== undefined && typeof cell.v !== 'number' ? cell.w : cell.v)) : ''; };
   for (let r = 2; r <= range.e.r; r++) {
-    const model = trimAll(v(r, 3)); if (!model) continue;
-    let ser = trimAll(v(r, 0)).normalize('NFKC'); if (prefix) ser = ser.replace(new RegExp('^' + prefix, 'i'), '');
-    out.push({ row: r + 1, serial: ser, monthRaw: v(r, 1), model, customer: trimAll(v(r, 4)), jitRaw: v(r, 9) });
+    const model = trimAll(v(r, k.D)); if (!model) continue;
+    let ser = trimAll(v(r, k.A)).normalize('NFKC'); if (prefix) ser = ser.replace(new RegExp('^' + prefix, 'i'), '');
+    out.push({ row: r + 1, serial: ser, monthRaw: v(r, k.B), model, customer: trimAll(v(r, k.E)), jitRaw: v(r, k.J) });
   }
   return out;
 }
@@ -2506,6 +2507,13 @@ function egbMerged(XLSX, wb, kind, prefix){
 function validateEGBSub(XLSX, wb){
   const errs = [];
   for (const k of ['ベンダー小型', 'EG', 'ASTRO']) for (const nm of ['(新)' + k, '(旧)' + k]) if (!findSheet(wb, nm)) errs.push(`項目の定義：シート「${nm.replace('ベンダー', 'ﾍﾞﾝﾀﾞｰ')}」がありません。`);
+  // 2026-11-06：列の並びが変わっても、見出し（Ser.・機種名）が見つからなければ黙って0行にせずエラーにする
+  for (const nm of ['(新)ベンダー小型', '(旧)ベンダー小型', '(新)EG', '(旧)EG', '(新)ASTRO', '(旧)ASTRO', 'AESA']) {
+    const sh = findSheet(wb, nm), ws = sh && wb.Sheets[sh];
+    if (!ws || !ws['!ref']) continue;
+    const found = taihiCols(XLSX, ws).found, miss = [['A', 'Ser.'], ['D', '機種名']].filter(([c]) => !found[c]);
+    if (miss.length) errs.push(`項目の定義：シート「${sh}」の1行目に見出し（${miss.map(([, d]) => `「${d}」`).join('、')}）がありません。`);
+  }
   return errs;
 }
 function extractEGBSub(XLSX, wb){
@@ -2714,14 +2722,34 @@ function toDate(v) {
   const m = trimAll(v).normalize('NFKC').match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);
   return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
 }
+// 対比表の列は1行目の見出しの名前で探す（2026-11-06：20261104 の対比表で AESA シートだけ列の並びが
+// 「生産月・No.・機種名・Ser.…」に変わり、決まった列（A=Ser.・D=機種名）で読んでいたため AESA の行が1つも出なかった）。
+// 見つからない見出しは、これまでの列（A・B・D・E・J）を使う
+const TAIHI_HEADS = { A: ['SER.', 'SER'], B: ['生産月'], D: ['機種名'], E: ['顧客'], J: ['着手日'] };
+function taihiCols(XLSX, ws, def = LARGE){
+  const out = { A: def.A, B: def.B, D: def.D, E: def.E, J: def.J, found: {} };
+  if (!ws || !ws['!ref']) return out;
+  const range = XLSX.utils.decode_range(ws['!ref']), heads = [];
+  for (let c = 0; c <= range.e.c; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+    heads.push(cell ? trimAll(cell.v).normalize('NFKC').replace(/\s/g, '').toUpperCase() : '');
+  }
+  // まず名前がぴったりの見出し、無ければ名前を含む見出し（「顧客名」など。機種名は「仕様機種名」を除く）
+  for (const k in TAIHI_HEADS) {
+    let c = heads.findIndex(h => TAIHI_HEADS[k].includes(h));
+    if (c < 0) c = heads.findIndex(h => h && TAIHI_HEADS[k].some(w => h.includes(w)) && !(k === 'D' && h.includes('仕様')));
+    if (c >= 0) { out[k] = c; out.found[k] = true; }
+  }
+  return out;
+}
 function largeRows(XLSX, ws, cfg = LARGE) {
   const range = XLSX.utils.decode_range(ws['!ref']);
   const v = (r, c) => { const cell = ws[XLSX.utils.encode_cell({ r, c })]; return cell ? (cell.v instanceof Date ? cell.v : trimAll(cell.w !== undefined && typeof cell.v !== 'number' ? cell.w : cell.v)) : ''; };
-  const out = [];
+  const out = [], k = taihiCols(XLSX, ws, cfg);
   for (let r = cfg.FIRST_DATA_ROW; r <= range.e.r; r++) {
-    const ser = trimAll(v(r, cfg.A)).normalize('NFKC').replace(new RegExp('^' + cfg.PREFIX, 'i'), '');
+    const ser = trimAll(v(r, k.A)).normalize('NFKC').replace(new RegExp('^' + cfg.PREFIX, 'i'), '');
     if (!ser) continue;
-    out.push({ row: r + 1, serial: ser, monthRaw: v(r, cfg.B), model: trimAll(v(r, cfg.D)), customer: trimAll(v(r, cfg.E)), jitRaw: v(r, cfg.J) });
+    out.push({ row: r + 1, serial: ser, monthRaw: v(r, k.B), model: trimAll(v(r, k.D)), customer: trimAll(v(r, k.E)), jitRaw: v(r, k.J) });
   }
   return out;
 }
@@ -2732,10 +2760,10 @@ function validateLarge(XLSX, wb, cfg = LARGE) {
     if (!name) { errs.push(`項目の定義：シート「${want.replace('ベンダー', 'ﾍﾞﾝﾀﾞｰ')}」がありません。`); continue; }
     const ws = wb.Sheets[name];
     if (!ws || !ws['!ref']) { errs.push(`シート「${name}」にデータがありません。`); continue; }
-    const head = c => { const cell = ws[XLSX.utils.encode_cell({ r: 0, c })]; return cell ? trimAll(cell.v).normalize('NFKC').replace(/\s/g, '').toUpperCase() : ''; };
-    const need = [[cfg.A, 'A', 'SER.', 'Ser.'], [cfg.B, 'B', '生産月', '生産月'], [cfg.D, 'D', '機種名', '機種名'], [cfg.E, 'E', '顧客', '顧客'], [cfg.J, 'J', '着手日', '着手日']];
-    const miss = need.filter(([c, , w]) => !head(c).includes(w));
-    if (miss.length) errs.push(`項目の定義：シート「${name}」の1行目に見出し（${miss.map(([, l, , d]) => `${l}列「${d}」`).join('、')}）がありません。`);
+    const found = taihiCols(XLSX, ws, cfg).found;
+    const need = [['A', 'Ser.'], ['B', '生産月'], ['D', '機種名'], ['E', '顧客'], ['J', '着手日']];
+    const miss = need.filter(([k]) => !found[k]);
+    if (miss.length) errs.push(`項目の定義：シート「${name}」の1行目に見出し（${miss.map(([, d]) => `「${d}」`).join('、')}）がありません。`);
   }
   if (!errs.length && !largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.NEW)], cfg).length && !largeRows(XLSX, wb.Sheets[findSheet(wb, cfg.OLD)], cfg).length)
     errs.push('列の定義：3行目以降のA列にシリアルがありません。');
