@@ -1,6 +1,6 @@
 import openpyxl, json, pathlib
 here = pathlib.Path(__file__).parent
-D = pathlib.Path(r'C:\Users\0029\Desktop\確定仕様書読み解き')
+D = pathlib.Path(__file__).resolve().parents[2] / '確定仕様書読み解き'
 ws = openpyxl.load_workbook(D / 'HRB確定仕様書読み解き.xlsx', data_only=True)['OP一覧']
 ops = []
 for r in ws.iter_rows(min_row=2, values_only=True):

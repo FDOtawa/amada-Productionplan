@@ -1,7 +1,7 @@
 """最終テストの突き合わせ用：懸案（残り）と、OP ごと・ファイルごとの件数 → デスクトップ"""
 import pathlib, openpyxl
 from openpyxl.styles import Alignment, Border, Side, PatternFill, Font
-src = openpyxl.load_workbook(r'C:\Users\0029\Desktop\確定仕様書読み解き HRB 2026年12月（最終テスト）.xlsx').active
+src = openpyxl.load_workbook(pathlib.Path(__file__).resolve().parents[2] / '確定仕様書読み解き' / r'確定仕様書読み解き HRB 2026年12月（最終テスト）.xlsx').active
 ops = [(c, src.cell(3, c).value, src.cell(2, c).value) for c in range(7, src.max_column) if src.cell(3, c).value]
 grp = None; G = []
 for c, name, g in ops:
@@ -41,6 +41,6 @@ table(s3, ['ファイル', '読んだページ', '帳票の行', '読まなか�
     ['【ベンディング 先行配布】組付仕様書(中型)2026年12月生産.pdf', '42ページ', 1, 'HRB 以外（HG・EGB・ロボット・ATC レイアウト）。HRB3506 の p42 だけ読む'],
     ['合計', '', 61, ''],
 ], [52, 12, 10, 60])
-out = pathlib.Path(r'C:\Users\0029\Desktop\確定仕様書読み解き 懸案一覧 HRB 2026年12月（最終テスト）.xlsx')
+out = (pathlib.Path(__file__).resolve().parents[2] / '確定仕様書読み解き' / r'確定仕様書読み解き 懸案一覧 HRB 2026年12月（最終テスト）.xlsx')
 wb.save(out); print(out)
 for d in data: print(d[0], d[1], d[2])

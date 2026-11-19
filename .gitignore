@@ -6,3 +6,7 @@
 
 # 確定仕様書読み解きのテスト用（PDF のコピー・ヘッドレス Edge のプロファイル）
 _test/
+
+# Windows のサムネイル・Python のキャッシュ
+photothumb.db
+__pycache__/

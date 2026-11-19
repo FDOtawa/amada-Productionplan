@@ -9,7 +9,7 @@ LARGE = [dict(f='組付(中型)', p=42, ym='2026年12月', ser='35065013', model
 SRB = [dict(f='SRB', p=1, ym='2026年12月', ser='10301114', model='SRB1003', country='インド', dest='オーバーシーズ',
             cust='Amada (India) Pvt. Ltd. - Technical Center', contract='Amada (India) Pvt. Ltd. - Technical Center', tok='',
             on=['LED照明', 'ﾃﾊﾟBOX', 'ﾊﾞｯｸｹﾞｰｼﾞ4軸'], note='', base='国内')]
-OPS = [r for r in openpyxl.load_workbook(r'C:\Users\0029\Desktop\HRB確定仕様書読み解き.xlsx', data_only=True)['OP一覧'].iter_rows(min_row=2, values_only=True) if r[0] is not None]
+OPS = [r for r in openpyxl.load_workbook(pathlib.Path(__file__).resolve().parents[2] / '確定仕様書読み解き' / 'HRB確定仕様書読み解き.xlsx', data_only=True)['OP一覧'].iter_rows(min_row=2, values_only=True) if r[0] is not None]
 
 KANA = str.maketrans({})
 def hankaku(s):
@@ -129,7 +129,7 @@ ws.freeze_panes = ws.cell(4, c0)
 ws.page_setup.paperSize = 9; ws.page_setup.orientation = 'landscape'; ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
 ws.sheet_properties.pageSetUpPr.fitToPage = True; ws.print_title_rows = '1:3'
 ws.oddFooter.center.text = '&P / &N'
-out = pathlib.Path(r'C:\Users\0029\Desktop\確定仕様書読み解き HRB大型 2026年12月（試し）.xlsx')
+out = (pathlib.Path(__file__).resolve().parents[2] / '確定仕様書読み解き' / r'確定仕様書読み解き HRB大型 2026年12月（試し）.xlsx')
 n = 1
 while out.exists(): out = out.with_name(f'確定仕様書読み解き HRB大型 2026年12月（試し） ({n}).xlsx'); n += 1
 wb.save(out); print(out, len(rows))
