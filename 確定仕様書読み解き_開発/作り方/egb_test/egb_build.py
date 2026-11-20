@@ -46,10 +46,10 @@ def form_of(model):  # E / AE / RE / ARE（機種名だけを見る）
         if s.startswith(f): return f
     return s or '?'
 
-COLS = ['制御装置(AE以外)', '制御装置(AE)', 'BI-S2', 'BI-S1', 'AS-01', 'WOP42', 'SG軸', 'Lｼﾌﾄ', 'Y3', 'AF自動ｽﾗｲﾄﾞ', '手動ｽﾗｲﾄﾞ', 'ﾂｷｱﾃﾓﾆﾀ',
+COLS = ['E', 'RE', 'AE', 'ARE', 'BI-S2', 'BI-S1', 'AS-01', 'WOP42', 'SG軸', 'Lｼﾌﾄ', 'Y3', 'AF自動ｽﾗｲﾄﾞ', '手動ｽﾗｲﾄﾞ', 'ﾂｷｱﾃﾓﾆﾀ',
         'SF追従装置', 'ﾍﾋﾞｰSF', 'ｸﾗﾝﾌﾟ', 'IO', 'ﾓﾊﾞｲﾙHMI(TAB)', 'BIﾂｰﾙﾅﾋﾞ', 'ﾛﾎﾞｯﾄIF', 'ATSAｴﾙｺﾞﾉﾐｸｽ', '20P/AF', '2人操作ﾌｯﾄﾍﾟﾀﾞﾙ',
         'ATC仕様', 'ﾛﾎﾞｯﾄ仕様', 'ATC付きﾛﾎﾞｯﾄ仕様', '特殊仕様', '指定色']
-GRP = {'制御装置(AE以外)': 'ｾｲｷﾞｮ', '制御装置(AE)': 'ｾｲｷﾞｮ', 'ATC仕様': 'その他', 'ﾛﾎﾞｯﾄ仕様': 'その他', 'ATC付きﾛﾎﾞｯﾄ仕様': 'その他', '特殊仕様': '特殊', '指定色': '特殊'}
+GRP = {'E': 'ｾｲｷﾞｮ', 'RE': 'ｾｲｷﾞｮ', 'AE': 'ｾｲｷﾞｮ', 'ARE': 'ｾｲｷﾞｮ', 'ATC仕様': 'その他', 'ﾛﾎﾞｯﾄ仕様': 'その他', 'ATC付きﾛﾎﾞｯﾄ仕様': 'その他', '特殊仕様': '特殊', '指定色': '特殊'}
 
 rows, recs, issues = [], [], []
 def issue(p, what, detail): issues.append([p['page'], p.get('ser', ''), p.get('model', ''), what, detail])
@@ -87,8 +87,9 @@ for p in pages:
         if rows_: mark.extend(r for r in rows_ if r not in mark)
         why[col] = reason or ' / '.join(rows_ or [])
     # その他（機種名から）・制御装置
-    if form == 'AE': on('ATC仕様', reason='機種名 AE'); on('制御装置(AE)', reason='機種名 AE')
-    else: on('制御装置(AE以外)', reason=f'機種名 {form}')
+    # ｾｲｷﾞｮは E・RE・AE・ARE の4列（懸案 全体1 の回答）
+    if form in ('E', 'RE', 'AE', 'ARE'): on(form, reason=f'機種名 {form}')
+    if form == 'AE': on('ATC仕様', reason='機種名 AE')
     if form == 'RE': on('ﾛﾎﾞｯﾄ仕様', reason='機種名 RE')
     if form == 'ARE': on('ATC付きﾛﾎﾞｯﾄ仕様', reason='機種名 ARE')
     # 角度センサー
@@ -106,7 +107,7 @@ for p in pages:
         on('SG軸', g3, '3点ゲージ'); margin.append('SG軸')
         if form == 'ARE': on('Lｼﾌﾄ', g3, '3点ゲージ（ARE）'); margin.insert(len(margin) - 1, 'Lｼﾌﾄ')
     # Lシフト（標準機・単体）・Y3（標準機）
-    y3 = [s for s in has('Y3')]
+    y3 = [s for s, n in zip(sel, S) if 'Y3軸' in n]  # Y3 は「3軸」のときだけ。6軸・4軸のバックゲージは付けない（懸案4）
     ls = [s for s, n in zip(sel, S) if ('Lシフト' in n or 'LS軸' in n) and 'Y3' not in n and 'ワークセンサ' not in n and '標準' not in n and 'LシフトМ無'.replace('М','') not in n]
     if std and y3: on('Y3', y3)
     if std and ls and not v['Lｼﾌﾄ']: on('Lｼﾌﾄ', ls, 'Lシフト単体')
@@ -142,11 +143,9 @@ for p in pages:
     # ロボットIF・エルゴノミクス・ARse
     rif = [s for s, n in zip(sel, S) if 'ロボットIF' in n or 'ロボットインター' in n]
     if rif: on('ﾛﾎﾞｯﾄIF', rif)
-    if any('6軸バックゲージ' in n for n in S): issue(p, '「6軸バックゲージ【標準】」は Y3 に数えていない', '※の注記に Y3軸バックゲージの記載あり')
     erg = has('エルゴノミクス')
     if erg: on('ATSAｴﾙｺﾞﾉﾐｸｽ', erg)
-    arse = [s for s, n in zip(sel, S) if 'ARSE' in n or 'ARCE' in n]
-    mark += [r for r in arse if r not in mark]
+    # ARce（ARse）HMIパック・4ieパックはマーキングにも帳票にも出さない（懸案 全体3）
     # 両手操作
     both = has('両手操作')
     if both: on('特殊仕様', both, '両手操作'); issue(p, '両手操作に ●（特殊仕様＋IO）', ' / '.join(both))
@@ -164,19 +163,25 @@ for p in pages:
         for c in ('AF自動ｽﾗｲﾄﾞ', '手動ｽﾗｲﾄﾞ', 'SF追従装置', 'ﾍﾋﾞｰSF', 'ﾓﾊﾞｲﾙHMI(TAB)', 'ﾛﾎﾞｯﾄIF', '20P/AF', '2人操作ﾌｯﾄﾍﾟﾀﾞﾙ'):
             if v[c]: io_why.append(c)
         if both: io_why.append('両手操作')
-    if io_why: v['IO'] = 1; why['IO'] = '・'.join(io_why); margin.append('IO')
+    # 制御ASSY（IO）の行の ●（懸案5）：IO の条件があれば、欄外に IO を書かずにこの行をマーキング。条件が無くてもこの行に ● があれば IO＝1
+    casy = [x for x in sel if N(x).startswith('制御ASSY')]
+    if form in ('RE', 'ARE'): casy = []
+    if casy and not io_why: io_why.append('制御ASSY（IO）に ●')
+    if io_why:
+        v['IO'] = 1; why['IO'] = '・'.join(io_why)
+        if casy: mark.extend(c for c in casy if c not in mark)
+        else: margin.append('IO')
     if form in ('RE', 'ARE') and (af or mf or sf or hsf or tab or rif or two):
         issue(p, 'ARE・RE で IO の付く OP があるが IO は付けない', ' / '.join(af + mf + sf + hsf + tab + rif + two))
     for c in ('手動ｽﾗｲﾄﾞ', '2人操作ﾌｯﾄﾍﾟﾀﾞﾙ'):
         if v[c] and std and form not in ('RE', 'ARE'): issue(p, f'{c} で制御IO を付けた（OP表の IO〇 による）', why[c])
-    casy = [x for x in sel if N(x).startswith('制御ASSY')]
-    if casy and not v['IO']: issue(p, '「制御ASSY（IO）」の行に ● があるが、IO の条件に当たらない（単体では見ない）', casy[0][:40])
     note = ''
     bz = N((p.get('biko') or '') + ' ' + re.split(r'【[^】]*モデルとの違い】', p.get('seizo') or '')[0])  # 「モデルとの違い」の変更一覧は ● と同じなので見ない.replace('SF接続10', 'SF接続IO')
     KW = {'SF1548': ['ﾍﾋﾞｰSF'], 'SF1224': ['SF追従装置'], '追従': ['SF追従装置', 'ﾍﾋﾞｰSF'], '接続IO': ['IO'], '制御IO': ['IO'], 'ロボットIF': ['ﾛﾎﾞｯﾄIF'],
           'Lシフト': ['Lｼﾌﾄ'], 'AS-01': ['AS-01'], '2人操作': ['20P/AF', '2人操作ﾌｯﾄﾍﾟﾀﾞﾙ'], 'スライドフット': ['AF自動ｽﾗｲﾄﾞ', '手動ｽﾗｲﾄﾞ'], '両手操作': ['特殊仕様'], 'Y3': ['Y3'], 'エルゴノミクス': ['ATSAｴﾙｺﾞﾉﾐｸｽ']}
     kws = [k for k, cs in KW.items() if N(k) in bz and not any(v[c] for c in cs)]
-    if kws: note = '備考欄記載あり'; issue(p, '備考・製造指示追記情報に OP の記載があるが、● が無い（' + '・'.join(kws) + '）', ((p.get('biko') or '') + ' ／ ' + (p.get('seizo') or '')).strip(' ／'))
+    if kws:  # OP は選ばず、備考・製造指示の記載を黄色でマーキング（後日担当が客先へ確認する。懸案2-1）
+        note = '備考欄記載あり'; mark.append('（備考・製造指示追記情報の記載：' + '・'.join(kws) + '）'); issue(p, '備考・製造指示追記情報に OP の記載があるが、● が無い（' + '・'.join(kws) + '）', ((p.get('biko') or '') + ' ／ ' + (p.get('seizo') or '')).strip(' ／'))
     if form == 'AE': mark.insert(0, '（機種名の AE 部分）')
     name = f'{model} {shimuke}'
     rows.append([ym, name, p.get('ser', ''), shimuke, ctry] + [v[c] for c in COLS] + [note])
@@ -218,7 +223,7 @@ for w in (w2, w3):
     for row in w.iter_rows(min_row=2):
         for c in row: c.alignment = Alignment(wrap_text=True, vertical='top'); c.font = Font(size=9); c.border = B
     for col, wd in zip('ABCDEFGHI', [7, 11, 16, 50, 16, 60, 40, 30, 40]): w.column_dimensions[col].width = wd
-wb.save(os.path.join(OUT, '確定仕様書読み解き EGB 2027年1月（テスト）.xlsx'))
+wb.save(os.path.join(OUT, '確定仕様書読み解き EGB 2027年1月（テスト・回答反映）.xlsx'))
 
 wi = openpyxl.Workbook(); x = wi.active; x.title = '懸案'
 x.append(['No', '懸案', '件数', '対象（ページ・シリアル）', '例（仕様書の記載）', '今回の扱い（テスト）', '回答（記入欄）'])
@@ -252,5 +257,5 @@ for row in x.iter_rows(min_row=2):
     for c in row: c.alignment = Alignment(wrap_text=True, vertical='top'); c.font = Font(size=9); c.border = B
     row[6].fill = PatternFill('solid', fgColor='FFF2CC')
 for col, wd in zip('ABCDEFG', [5, 36, 5, 30, 50, 24, 30]): x.column_dimensions[col].width = wd
-wi.save(os.path.join(OUT, 'EGB確定仕様書読み解き 懸案一覧 2027年1月（テスト）.xlsx'))
+wi.save(os.path.join(HERE, '残りの懸案（回答反映後）.xlsx'))
 print('rows', len(rows), 'issues', len(issues), 'pages', len(pages))
