@@ -44,7 +44,8 @@ $('spProgStop').addEventListener('click', () => { spCancel = true; $('spProgSub'
 // 帳票（Excel）：1〜3行目が見出し（基本の列・OP の区分・OP名）、4行目から1シリアル1行。右端に備考欄。2枚目に読み取りの記録
 // 客先は出さない（2026-10-27 ユーザー指示：PDF の文字のつぶれで読み違いが多く、帳票の正解率が下がるため）
 const SP_BASE = ['ｱﾏﾀﾞ生産月', '機種名', 'ｼﾘｱﾙ', '仕向', '国名'];
-const SP_GRP_FILL = { 'HRB小型・中型': 'FFFFF2CC', 'HRB大型': 'FFE2EFDA', 'SRB': 'FFFCE4D6', '全品': 'FFEDEDED', 'HG': 'FFDDEBF7' };
+const SP_GRP_FILL = { 'HRB小型・中型': 'FFFFF2CC', 'HRB大型': 'FFE2EFDA', 'SRB': 'FFFCE4D6', '全品': 'FFEDEDED', 'HG': 'FFDDEBF7',
+  'ｾｲｷﾞｮ': 'FFE2EFDA', 'OP': 'FFDDEBF7', 'その他': 'FFFFF2CC', '特殊': 'FFEDEDED' }; // 後ろの4つは EGB（2026-11-20）
 function spBuildXlsx(rows, log, OPS = SP_HRB_OPS){
   const c0 = SP_BASE.length, last = c0 + OPS.length, W = last + 1;
   const blank = () => Array(W).fill('');
@@ -145,13 +146,15 @@ async function spRunSpec(files, K){
     const readOne = async (wi, d, n) => {
       const c = await render(d, n);
       const work = async () => {
-        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes, known: K.known, countryW: K.countryW }), row = K.judge(p);
+        const p = await SpPage.readPage(ocr[wi], c, { want: K.want, keepCanvas: true, noNotes: K.noNotes, known: K.known, countryW: K.countryW, unsure: K.unsure }), row = K.judge(p);
         const pl = !row.skip && p.canvas && p.geom ? SpMark.plan(p, K.judge, K.ops) : null;
         if (pl && pl.cond.length) await p.geom.locate();
+        // EGB：備考に OP の記載があって ● が無いときは、その行を黄色でマーキング（2026-11-20 懸案2-1）
+        if (pl && pl.notes && pl.notes.length && p.geom.noteLines) { const res = pl.notes.map(x => new RegExp(x)); pl.noteBoxes = (await p.geom.noteLines()).filter(l => res.some(re => re.test(l.t))); }
         return { p, row, pl };
       };
       // 1ページに時間がかかりすぎたら（読み取りが止まったら）、その読み取りを作り直してそのページは飛ばす
-      let r, tm; try { r = await Promise.race([work(), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), 120000))]); }
+      let r, tm; try { r = await Promise.race([work(), new Promise((_, ng) => tm = setTimeout(() => ng(new Error('timeout')), K.timeout || 120000))]); }
       catch (e) {
         if (e && e.message === 'timeout') { try { await ocr[wi].terminate(); } catch (x) {} ocr[wi] = await spMakeWorker(); r = { p: { skip: '読み取りに時間がかかりすぎたため飛ばした' } }; }
         else r = { p: { skip: '読み取りエラー（' + (e && e.message || e) + '）' } };
@@ -202,6 +205,7 @@ async function spRunSpec(files, K){
     return;
   }
   $('spProg').hidden = true;
+  if (K.sort) rows.sort(K.sort); // EGB は帳票をシリアル番号の順に（2026-11-20 懸案 全体5）
   if (!rows.length) { showErr('保存できるデータがありません', [{ cause: `${K.label} の確定仕様書のページが見つかりませんでした`, fix: `取り込んだ PDF が ${K.label} の確定仕様書か確かめてください（ページごとの結果は記録に残りません）` }]); return; }
   // 生産年月が読めなかった行は、同じ読み解きのほかの行でいちばん多い生産年月で補う（2026-10-24：HG 22402975）
   const ymCount = {}; rows.forEach(r => { if (r.ym) ymCount[r.ym] = (ymCount[r.ym] || 0) + 1; });
@@ -214,7 +218,7 @@ async function spRunSpec(files, K){
   if (dup.length) notes.push(['info', `同じシリアルのページが ${dup.length} あり、先のページを使いました`]);
   if (xls.length) notes.push(['warn', `Excel の確定仕様書（${xls.map(f => f.name).join('、')}）は、まだ読めないため使っていません`]);
   const am = rows.filter(r => r.biko).length;
-  if (am) notes.push(['warn', `備考欄に記載のある行が ${am} 件あります（ｱﾝﾏｯﾁ有など）。確定仕様書と見比べてください`]);
+  if (am) notes.push(['warn', `備考欄に記載のある行が ${am} 件あります（${K.bikoWord || 'ｱﾝﾏｯﾁ有など'}）。確定仕様書と見比べてください`]);
   notes.push(['info', '国名・OP は文字の読み取りです。読み違いが無いか帳票で確かめてください（2枚目のシート「読み取りの記録」にページごとの結果があります）']);
   const mb = marked.reduce((s, m) => s + m.data.length, 0) / 1048576;
   notes.push(['info', `読み解き済みの PDF（${marked.length}つ・計 ${mb.toFixed(1)}MB）も同じフォルダに保存します：${marked.map(m => m.base + '.pdf').join('、')}。実装と判断した行は黄色、● ではなく条件で付けた OP は赤字です`]);
@@ -244,5 +248,8 @@ const SP_KINDS = {
   'HRB・SRB': { label: 'HRB・SRB', want: spIsHRB, judge: p => SpJudge.judge(p, { countryOf }), ops: SP_HRB_OPS,
     known: SpJudge.known, countryW: { chars: SpJudge.COUNTRY_CHARS, ok: SpJudge.isCountry } }, // 読み直し（2026-10-27）
   'HG': { label: 'HG', want: h => /^HG\d/.test(spModel(h)), judge: p => SpJudge.judgeHG(p, { countryOf }), ops: SP_HG_OPS, noNotes: true }, // 2026-10-24。HG の判定は備考を使わないので読まない（2026-10-27）
+  // EGB（2026-11-20）：機種名が EGB＋数字のページだけ読む（EGBRBT〔ロボット〕・CR は読まず、読み解き済みの PDF にはそのまま入れる）。帳票はシリアル番号の順
+  'EGB': { label: 'EGB', want: h => /^EGB\d/.test(spModel(h)), judge: p => SpJudge.judgeEGB(p, { countryOf, ops: SP_EGB_OPS }), ops: SP_EGB_OPS,
+    unsure: SpJudge.egbUnsure, timeout: 300000, sort: (a, b) => String(a.ser).localeCompare(String(b.ser)), bikoWord: '備考欄記載あり：備考・製造指示に OP の記載があって ● が無い' },
 };
 for (const k of Object.keys(SP_KINDS)) SP_PROCESSORS[k] = { run: files => (spLast && spLast.key === spKey() ? (saveJob = spLast.job, openSave()) : spRunSpec(files, SP_KINDS[k])) };

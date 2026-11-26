@@ -46,7 +46,18 @@
   function markGroups(V, unit) {
     // スキャンが少し傾いていると、1本の縦線が2〜3px ずれた2本に分かれる → 近い線は長い方だけ残す（2026-10-16：13035858 で組が見つからなかった）
     const raw = V.filter(v => v.y1 - v.y0 > unit * 4).sort((a, b) => a.x - b.x), all = [], out = [];
-    for (const v of raw) { const p = all[all.length - 1]; if (p && v.x - p.x <= 4 && Math.min(p.y1, v.y1) > Math.max(p.y0, v.y0)) { if (v.y1 - v.y0 > p.y1 - p.y0) all[all.length - 1] = v; } else all.push(v); }
+    // 直前の線だけでなく、4px 以内の線すべてと比べる（2026-11-20：EGB 13377365 は同じ位置に途中で切れた短い線が2本あり、長い線と組にならなかった）
+    for (const v of raw) {
+      const near = []; for (let j = all.length - 1; j >= 0 && v.x - all[j].x <= 4; j--) near.push(j);
+      const hits = near.filter(j => Math.min(all[j].y1, v.y1) > Math.max(all[j].y0, v.y0));
+      if (!hits.length) { all.push(v); continue; }
+      if (hits.every(j => v.y1 - v.y0 > all[j].y1 - all[j].y0)) {
+        // 長い線を残し、同じ位置の短い線（重なるもの・長い線の範囲に入るもの）は外す
+        const drop = new Set(near.filter(j => hits.includes(j) || (all[j].y0 >= v.y0 - 2 && all[j].y1 <= v.y1 + 2)));
+        for (const j of [...drop].sort((a, b) => b - a)) all.splice(j, 1);
+        all.push(v);
+      }
+    }
     const ov = (a, b) => Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0.6 * Math.max(a.y1 - a.y0, b.y1 - b.y0) * 0.5;
     for (let i = 0; i < all.length; i++) {
       const vs = [all[i], ...all.slice(i + 1).filter(v => ov(v, all[i]))]; // 同じ高さの範囲にある縦線だけで見る

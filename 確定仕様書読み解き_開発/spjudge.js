@@ -198,8 +198,136 @@
     let s2 = h.ser; if (/^\d{7}$/.test(s2 || '') && digits.length >= 2 && s2[0] === digits[1] && !s2.startsWith(digits.slice(0, 2))) s2 = digits[0] + s2;
     return { ym: h.ym, name, ser: s2, shimuke, country: cnOut, cust, kind: mid ? 'HG中型' : 'HG小型', f, biko: '', marks: [...m] };
   }
+  // ===== EGB の確定仕様書（2026-11-20：ユーザー提供「EGB確定仕様書読み解きルール.xlsx」と、懸案一覧〔No.1〜30・2027年1月テスト〕の回答）=====
+  // 標準機・小型機（生産計画抽出と同じ）：EGB13〇〇・EGB8〇〇〇・EGB6＊＊＊（3桁に 2）は標準機、EGB4〇〇〇・EGB6＊＊＊（3桁に 1）は小型機
+  function egbKind(model) {
+    const d = (N(model).match(/^EGB(\d{4})/) || [])[1]; if (!d) return '';
+    if (d.startsWith('13') || d.startsWith('8')) return '標準機';
+    if (d.startsWith('4')) return '小型機';
+    if (d.startsWith('6')) { if (d.slice(1).includes('2')) return '標準機'; if (d.slice(1).includes('1')) return '小型機'; }
+    return '';
+  }
+  // 機種名の数字の後ろの記号：E／AE／RE／ARE（機種名だけを見る。仕様書の「代表仕様」の欄は使わない）
+  function egbForm(model) {
+    const s = (N(model).match(/^EGB\d{4}([A-Z]*)/) || [])[1] || '';
+    for (const f of ['ARE', 'AE', 'RE', 'E']) if (s.startsWith(f)) return f;
+    return '';
+  }
+  // ● の行（オプション名の欄だけを読んだもの）の印。1つの行に印が2つ付くこともある（「2人操作フットペダル＋自動スライド…」など）
+  // 見るのは行の名前の欄だけ（右の欄の説明「Y3軸からの変更有無」や ※ の注記は読まない）
+  // 読み違いを見込んだ形（2026-11-20：白黒のスキャンは字がつぶれる。「中間板」→「中間抜」「由問拓」、「AMTSⅢS」→「A天SIIIS」、「軸」→「較」「還」など）
+  const EGB_RE = {
+    norm: s => N(s).replace(/[《〈]/g, '(').replace(/[》〉]/g, ')').replace(/※.*$/, ''),
+    mid: /^[^\d]?[中由四記][^\d\s.,]?[板抜振坂拓柏株扱析だ]|^中[間問聞商]|^[由記四][問環商]/, // 中間板（2文字目は読み違いが多い：中間板・中問抜・由問拓・中賠板・中牙板・中癌板…）
+    agA: /A[GC].{0,3}P[-_]?A/, agM: /A[GC].{0,3}P[-_]?M|手動/, oil: /[油池][圧正]/, amts: /A.{0,3}S|AMTS|AWTS|A天S|天TS|AMNTS|AMT|AMIS|A[LI1]TS|モジュラー|ダイ[ホボ]ル.{0,6}は.{0,10}内に/, // AGRIP-A(油圧)・AGRIP-M(手動)、「中間板．AMTSⅢ（ダイホルダーはAMTSⅢ内に含む）」
+    bis: /^.{0,2}[角直色名公鉛折明][度医記諾]|センサ|B[IJ1L\[|]?-?S[I1LⅡ\]|]|BI-?S|B[IJ1L\[|]-S/, // EGB の ● の行の「センサー」は角度センサーだけ（ワークセンサーは外す）
+    two: /2軸|自.{0,2}[27](?![0-9])|2(?=[軸較還輸釘男抽])/, one: /1軸|自.{0,2}1(?![0-9])|自動[\]L|I]|1(?=[軸較還輸男抽培])/,
+  };
+  function egbUnsure(raw) {
+    const t = EGB_RE.norm(raw);
+    if ((EGB_RE.mid.test(t) || /A[CG].{0,3}P/.test(t)) && !EGB_RE.agA.test(t) && !EGB_RE.agM.test(t) && !EGB_RE.amts.test(t) && !EGB_RE.oil.test(t)) return true; // 中間板の A／M が読めない
+    if (EGB_RE.bis.test(t) && !/ワーク/.test(t) && !EGB_RE.two.test(t) && !EGB_RE.one.test(t)) return true; // 角度センサーの軸数が読めない
+    return false;
+  }
+  function egbTags(raw) {
+    const s = String(raw || ''), t = EGB_RE.norm(s), m = new Set();
+    if (/^[①-⑳]/.test(s.trim()) || /^特殊仕様[①-⑳]/.test(t) || /^\(?\d{1,2}\)?(?![0-9点京人PM.])/.test(t)) { m.add('SPC'); return m; } // 特殊仕様①〜⑳の行は特殊仕様＝1 で足りる（懸案3）。「①」を「1」と読むこともある
+    if (/^制御|ASSY|SSY\(?[1IL\[][0O]\)?/.test(t)) { m.add('CASY'); return m; } // 制御ASSY（IO）
+    if (/AR[CS]E/.test(t)) return m; // ARce（ARse）HMIパック・4ieパックは印も帳票も出さない（懸案 全体3）
+    // 特殊仕様の「①」を読めずに字のかけら（「すす菩語昌ロボットIF」）になることがあるので、角度センサー・ロボットIF は行の頭の近くにあるときだけ
+    const head = re => { const i = t.search(re); return i >= 0 && i <= 4; };
+    if (head(EGB_RE.bis) && !/ワーク/.test(t)) m.add(EGB_RE.two.test(t) ? 'BIS2' : 'BIS1'); // 軸数が読めないときは1軸
+    if (/[A-Z]S-?[0O][1IL)\]]|AS-?0|\(A[S5]?-?[0O][1IL]\)|レーザ|安全[装六碑]/.test(t)) m.add('AS01');
+    if (/[3三][点京].?ゲ|点ゲージ/.test(t)) m.add('G3');
+    if (/Y3/.test(t)) m.add('Y3'); // 「Y3軸」のときだけ（6軸・4軸のバックゲージは付けない。懸案4）
+    if (/([LしL]シ.?[フブプ]ト|LS軸)/.test(t) && !/Y3|ワークセンサ|標準|無|脱着|突|ツキアテ|用|対応|軸仕/.test(t)) m.add('LS'); // 「バックゲージL軸仕様．Y3軸対応Lシフト3軸」は Y3 の行
+    if (/スライド.?[フブ]|スライドフ/.test(t) && !/材料/.test(t)) m.add(/手[動勤]/.test(t) ? 'MF' : 'AF');
+    if (/AF軸/.test(t)) m.add('AF');
+    if (/[2二]人/.test(t) && /操作|[フブ]ット|[ペベ]ダル/.test(t)) m.add('2P');
+    if (/1224/.test(t)) m.add('SF');
+    if (/1548/.test(t)) m.add('HSF');
+    if (!/^[ダタ]イ/.test(t) && (EGB_RE.agA.test(t) || (EGB_RE.mid.test(t) && (EGB_RE.amts.test(t) || EGB_RE.oil.test(t))) || /モジュラー/.test(t))) m.add('CL'); // AGRIP-A・中間板 AGRIP-A(油圧)・AMTSⅢ（【標準】が無くても。懸案1）・モジュラーツーリングシステム。ダイホルダーの行（「油圧1Vダイホルダー(AGRIP-A必須)」）は外す
+    if (/スマー.{0,2}オ[ペベ]|オ[ペベ]レーション|モバイルHMI|ガイダンス|当てモ.{0,6}最/.test(t) && !/モデル/.test(t)) m.add('TAB'); // 国内の様式は2段の行で、上の段（スマートオペレーションパック）が読めないことがある。「…モデル標準仕様」の本体の行は外す
+    if (/(ツキアテ|突き?当て?)モニ/.test(t)) m.add('TM');
+    if (head(/ロボットI\/?F|ロボットインター/)) m.add('RIF');
+    if (/エルゴ/.test(t)) m.add('ERG');
+    if (/両手/.test(t)) m.add('BOTH');
+    if (/^指定色/.test(t)) m.add('COLOR');
+    return m;
+  }
+  // 備考・製造指示追記情報に OP の記載があるのに ● が無いとき：OP は選ばず、その記載を黄色でマーキング・備考欄に「備考欄記載あり」（懸案2-1）
+  // 「【…モデルとの違い】」より後ろは ● の変更の一覧（● と同じ）なので見ない
+  const EGB_NOTE = [[/SF-?1548/, ['ﾍﾋﾞｰSF']], [/SF-?1224/, ['SF追従装置']], [/ロボットI\/?F/, ['ﾛﾎﾞｯﾄIF']], [/2人操作/, ['20P/AF', '2人操作ﾌｯﾄﾍﾟﾀﾞﾙ']],
+    [/両手操作/, ['特殊仕様']], [/エルゴノミ/, ['ATSAｴﾙｺﾞﾉﾐｸｽ']]];
+  function judgeEGB(p, opts) {
+    opts = opts || {};
+    if (p.skip) return { skip: p.skip };
+    const h = p.head || {}, model = N(h.model).replace(/^EGB(\d{4})[O0]?(?=[A-Z])/, 'EGB$1');
+    if (/^EGBRBT|^EGBR8T|^EGBRB/.test(model)) return { skip: 'ロボット（EGBRBT）は読み解き不要' };
+    if (!/^EGB\d{4}/.test(model)) return { skip: `EGB 以外（${h.model || '機種名が読めない'}）` };
+    const kind = egbKind(model), form = egbForm(model), std = kind === '標準機';
+    // 国名：海外の様式は「国名」の欄（country2 の位置）、国内の様式は右上の「国名」（country の位置）。読めなければ客先名から
+    // 国内と海外で国名の欄の位置が違い、もう一方の位置には日付などがあるので、国名がそのまま読めたときだけ使う（似た字の国名に寄せない。「契約日…」→「ペルー」になった）
+    const strict = raw => { const t = N(raw); return COUNTRIES.slice().sort((a, b) => b.length - a.length).find(c => t.includes(c)) || ''; };
+    // 字が1つ多い・少ないだけのとき（「マレーシジア」）は、国名の字がすべて入っていれば（3字以上の国名）その国
+    const full = raw => { const t = N(raw); return COUNTRIES.filter(c => c.length >= 3 && [...c].every(ch => t.includes(ch))).sort((a, b) => b.length - a.length)[0] || ''; };
+    let cn = strict(h.country2) || strict(h.country) || strict(h.country6) || strict(h.country26) || full(h.country2) || full(h.country26);
+    if (!cn && h.countryW && COUNTRIES.includes(country(h.countryW))) cn = country(h.countryW);
+    if (!COUNTRIES.includes(cn) && opts.countryOf) cn = opts.countryOf(h.dest || '') || opts.countryOf(h.contract || '') || cn;
+    const cnOut = cn === 'アラブ首長国連邦' ? 'UAE' : cn, shimuke = cn === '日本' ? 'DMS' : 'EXP'; // 仕向は国内＝DMS、それ以外＝EXP（CE は分けない）
+    const dots = p.dots || [], tags = dots.map(egbTags), rowsOf = k => tags.map((m, i) => m.has(k) ? i : -1).filter(i => i >= 0), has = k => rowsOf(k).length > 0;
+    const f = {}, hl = new Set(), cond = [], why = {}, NO = {};
+    (opts.ops || []).forEach(o => NO[o.name] = o.no);
+    const on = (name, rows, reason) => { const no = NO[name]; if (no) f[no] = true; (rows || []).forEach(i => hl.add(i)); if (reason) why[name] = reason; };
+    if (form) on(form, null, '機種名 ' + form); // ｾｲｷﾞｮは E・RE・AE・ARE の4列（懸案 全体1）
+    if (form === 'AE') on('ATC仕様'); if (form === 'RE') on('ﾛﾎﾞｯﾄ仕様'); if (form === 'ARE') on('ATC付きﾛﾎﾞｯﾄ仕様');
+    if (has('BIS2')) on('BI-S2', rowsOf('BIS2')); if (has('BIS1')) on('BI-S1', rowsOf('BIS1'));
+    if (has('AS01')) on('AS-01', rowsOf('AS01')); else { on('WOP42'); cond.push('WOP42'); } // AS-01 に ● が無ければ WOP42（機種名に関係なく）
+    if (has('G3') && (form === 'ARE' || form === 'RE')) { // 3点ゲージ：ARE は Lｼﾌﾄ・SG軸、RE は SG軸
+      if (form === 'ARE') { on('Lｼﾌﾄ', rowsOf('G3')); cond.push('Lｼﾌﾄ'); }
+      on('SG軸', rowsOf('G3')); cond.push('SG軸');
+    }
+    if (std && has('Y3')) on('Y3', rowsOf('Y3')); // 小型機は ● があっても Lｼﾌﾄ・Y3 を付けない
+    if (std && has('LS') && !f[NO['Lｼﾌﾄ']]) on('Lｼﾌﾄ', rowsOf('LS'));
+    if (has('AF')) on('AF自動ｽﾗｲﾄﾞ', rowsOf('AF')); if (has('MF')) on('手動ｽﾗｲﾄﾞ', rowsOf('MF'));
+    if (has('2P') && has('AF')) on('20P/AF', rowsOf('2P')); else if (has('2P')) on('2人操作ﾌｯﾄﾍﾟﾀﾞﾙ', rowsOf('2P'));
+    if (has('SF')) on('SF追従装置', rowsOf('SF')); if (has('HSF')) on('ﾍﾋﾞｰSF', rowsOf('HSF'));
+    if (has('CL')) { on('ｸﾗﾝﾌﾟ', rowsOf('CL')); cond.push('ｸﾗﾝﾌﾟ'); } // ｸﾗﾝﾌﾟは仕向で分けない
+    const tab = has('TAB'); // スマートオペレーションパック（日程表の「ﾓﾊﾞｲﾙHMI★(TAB)」）
+    if (tab) { if (std) { on('ﾓﾊﾞｲﾙHMI(TAB)', rowsOf('TAB')); cond.push('TAB'); } on('ﾂｷｱﾃﾓﾆﾀ', rowsOf('TAB')); cond.push('ﾂｷｱﾃﾓﾆﾀ'); }
+    if (has('TM') && !f[NO['ﾂｷｱﾃﾓﾆﾀ']]) on('ﾂｷｱﾃﾓﾆﾀ', rowsOf('TM'));
+    if (form === 'E' && (has('BIS1') || has('BIS2'))) { on('BIﾂｰﾙﾅﾋﾞ', [...rowsOf('BIS1'), ...rowsOf('BIS2')]); cond.push('BIﾂｰﾙﾅﾋﾞ'); } // 機種名が「E」＋BI-S
+    if (has('RIF')) on('ﾛﾎﾞｯﾄIF', rowsOf('RIF'));
+    if (has('ERG')) on('ATSAｴﾙｺﾞﾉﾐｸｽ', rowsOf('ERG'));
+    if (has('BOTH')) on('特殊仕様', rowsOf('BOTH'), '両手操作');
+    if (has('COLOR')) on('指定色', rowsOf('COLOR'));
+    const tokT = N(h.tokRaw) + ' ' + N(h.tok);
+    if (h.tok || /-\d{3,5}/.test(tokT)) on('特殊仕様', null, '特殊機№');
+    // 制御IO：条件に1つでも当たれば1つ。ARE・RE は付けない。小型機はﾛﾎﾞｯﾄIF のときだけ。
+    // 制御ASSY（IO）に ● があれば、欄外に IO を書かずにその行をマーキング。条件が無くても制御ASSY（IO）に ● があれば IO（懸案5）
+    const io = [];
+    if (form !== 'RE' && form !== 'ARE') {
+      if (!std) { if (has('RIF')) io.push('ﾛﾎﾞｯﾄIF'); }
+      else {
+        if (form === 'AE') io.push('AE');
+        for (const k of ['AF自動ｽﾗｲﾄﾞ', '手動ｽﾗｲﾄﾞ', 'SF追従装置', 'ﾍﾋﾞｰSF', 'ﾓﾊﾞｲﾙHMI(TAB)', 'ﾛﾎﾞｯﾄIF', '20P/AF', '2人操作ﾌｯﾄﾍﾟﾀﾞﾙ']) if (f[NO[k]]) io.push(k);
+        if (has('BOTH')) io.push('両手操作');
+      }
+      const casy = rowsOf('CASY');
+      if (casy.length && !io.length) io.push('制御ASSY（IO）に ●');
+      if (io.length) { on('IO', casy); if (!casy.length) cond.push('IO'); }
+    }
+    // 備考・製造指示追記情報
+    // 「【…モデルとの違い】」の変更の一覧（● と同じ）は、次の改訂の表・備考の手前まで外す
+    const nt = N(p.notes).replace(/モデル.{0,3}[違遠記]い.*?(?=改[訂町]|備考|$)|モデルより.*?(?=改[訂町]|備考|$)/g, ''), noteKw = [];
+    for (const [re, cols] of EGB_NOTE) if (re.test(nt) && !cols.some(c => f[NO[c]])) noteKw.push(re.source.replace(/\\|-\?/g, ''));
+    const biko = noteKw.length ? '備考欄記載あり' : '';
+    let ser = h.ser;
+    return { ym: h.ym, name: `${model} ${shimuke}`, ser, shimuke, country: cnOut, cust: N(h.dest) ? h.dest : h.contract, kind: kind || 'EGB', f, biko,
+      plan: { hl: [...hl].sort((a, b) => a - b), cond: [...new Set(cond)], model: form === 'AE' ? 'AE' : '', notes: noteKw }, marks: tags.map(m => [...m].join('+')) };
+  }
   const KNOWN = /標準|加圧能力|テーブル長さ|ダイホルダ|受け台|ストッパ|取扱説明|ペンダント|無線デジ|バックゲージ|中間板|[バパ]ーコード|リアガード|サイドガード|突き当て|フットペダル|タッチペン|AMNC|本体|先端段差|クランプ|作動油|韓国仕様|指定色|LED/;
   const known = t => KNOWN.test(N(t)) || marks([t]).size > 0;
   const isCountry = t => COUNTRIES.includes(country(t));
-  G.SpJudge = { judge, judgeHG, country, tons, marks, marksHG, known, isCountry, COUNTRY_CHARS };
+  G.SpJudge = { judge, judgeHG, judgeEGB, egbTags, egbUnsure, egbKind, egbForm, country, tons, marks, marksHG, known, isCountry, COUNTRY_CHARS };
 })(window);

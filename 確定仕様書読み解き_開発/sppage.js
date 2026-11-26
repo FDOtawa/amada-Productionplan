@@ -30,7 +30,12 @@
     const longV = lines.V.filter(v => v.y1 - v.y0 > cv.height * 0.4), longH = lines.H.filter(h => h.x1 - h.x0 > cv.width * 0.5);
     // 外枠：左右は長い横線の端（右の縦線はかすれて見つからないことがある）
     const fL = Math.min(...longH.map(h => h.x0), ...longV.map(v => v.x)), fR = Math.max(...longH.map(h => h.x1));
-    const gy = main.y0, fT = Math.min(...longH.filter(h => h.y < gy - 50).map(h => h.y));
+    // 上の横線：パンチ穴の跡などで途中が切れている線（2026-11-20：EGB の小型機の (EGB).pdf）は、同じ高さの切れ端を合わせて長さを見る
+    const gy = main.y0, topH = [];
+    for (const h of lines.H.filter(h => h.y < gy - 50).sort((a, b) => a.y - b.y)) { const o = topH.find(o => Math.abs(o.y - h.y) <= 6); if (o) o.s.push([h.x0, h.x1]); else topH.push({ y: h.y, s: [[h.x0, h.x1]] }); }
+    const cover = s => { let n = 0, e = -1; for (const [a, b] of s.slice().sort((p, q) => p[0] - q[0])) { if (b > e) { n += b - Math.max(a, e); e = b; } } return n; };
+    // 切れ端を合わせた線は、今までの線より 20px 以上上にあるとき（別の線）だけ使う（同じ線の太さの分だけ上にずれると、HRB の国名の欄がずれた）
+    const fT0 = Math.min(...longH.filter(h => h.y < gy - 50).map(h => h.y)), fT = Math.min(fT0, ...topH.filter(o => cover(o.s) > cv.width * 0.5 && !(o.y > fT0 - 20)).map(o => o.y));
     // 外枠（上の欄）が見つからないページは確定仕様書の様式ではない（一覧表など）。そのまま読むと切り出しの大きさがおかしくなる
     if (![fL, fR, fT].every(Number.isFinite) || fR - fL < cv.width * 0.5 || gy - fT < cv.height * 0.08) return null;
     return { main, fL, fR, fT, gy, dots };
@@ -99,6 +104,24 @@
     { const r = await ocrText(worker, crop('ym'), 7); const m = r.t.match(/(20)?(\d\d)\D{0,2}(\d{1,2})月/); head.ym = m ? `20${m[2]}年${+m[3]}月` : ''; head.ymRaw = r.t; }
     { const r = await ocrText(worker, crop('ser'), 7, AN); const m = r.t.match(/[A-Z]{0,3}\d{5,8}/); head.ser = m ? m[0] : r.t; }
     { const r = await ocrText(worker, crop('model'), 7, AN + '-._'); const t = r.t.replace(/^[^A-Z]*?[I1L]?RB(?=C?\d)/, 'HRB'), m = t.match(/(HRBC|HRB|SRB|HG|EGB)\d{3,4}[A-Z]*/); head.model = m ? m[0] : r.t; }
+    // EGB（2026-11-20）：1行として読むと機種名の後ろの「AE」を落とすことがある（「EGB1303AE」→「EGB1303」）ので、1語として読み直して長い方を使う。
+    // シリアル（数字8桁）は英字に読むことがある（「60299223」→「0UZ9ZZ3」）ので、数字だけで読み直す
+    if (/^E[G6]B\d/.test(head.model) || /^E[G6]B\d/.test(N(head.model))) {
+      const r2 = (await ocrText(worker, crop('model', 3, 'model2'), 13, AN)).t.replace(/^E6B/, 'EGB'), m2 = r2.match(/EGB\d{4}[A-Z]*/);
+      if (m2 && !/^EGBRBT/.test(m2[0]) && m2[0].length > String(head.model).length) head.model = m2[0];
+      // 上の横線がかすれて外枠の上を1段下に見誤ると、欄の上が切れる（60299223 は数字の上半分が切れていた）→ 欄を上に広げて読み直す。生産年月も同じ
+      const up = (k, f) => { const [x0, y0, x1, y1] = box(k), hh = (y1 - y0) * f; return [x0, Math.max(0, y0 - hh), x1, y1]; };
+      if (/^EGB\d{4}/.test(head.model) && !/^\d{8}$/.test(head.ser)) {
+        // 罫線を消す処理で数字の上が欠けることがあるので、罫線を消さずにそのまま切り出す
+        const plain = (b, sc) => { const [x0, y0, x1, y1] = b, c = document.createElement('canvas'); c.width = Math.round((x1 - x0) * sc); c.height = Math.round((y1 - y0) * sc); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(cv, x0, y0, x1 - x0, y1 - y0, 0, 0, c.width, c.height); return c; };
+        for (const f of [0, 0.4, 0.8]) { const r3 = (await ocrText(worker, plain(up('ser', f), 2), 7, '0123456789')).t, m3 = r3.match(/\d{8}/); if (m3) { head.ser = m3[0]; break; } }
+      }
+      // 「2027年0O1月」「2027年01_月」のように読んだときも年月にする
+      if (/^EGB\d{4}/.test(head.model) && !head.ym) { const m5 = N(head.ymRaw).replace(/[OoD]/g, '0').match(/(20)?(\d\d)年\D?0*(\d{1,2})\D?月/); if (m5) head.ym = `20${m5[2]}年${+m5[3]}月`; }
+      if (/^EGB\d{4}/.test(head.model) && !head.ym) {
+        for (const f of [0.6, 1]) { const r4 = await ocrText(worker, crop(up('ym', f), 3, 'ym2'), 7), m4 = r4.t.match(/(20)?(\d\d)\D{0,2}(\d{1,2})月/); if (m4) { head.ym = `20${m4[2]}年${+m4[3]}月`; break; } }
+      }
+    }
     if (opts.want && !opts.want(head)) return { head, dots: [], notes: '', rotated: cv !== cv0, form, early: true };
     { const r = await ocrText(worker, crop(tokBox(), 3, 'tok'), 7, AN + '-'); const m = r.t.match(/[A-Z]{2,3}\d?-\d{3,5}/); head.tok = m ? m[0] : ''; head.tokRaw = r.t; }
     head.country = (await ocrText(worker, crop('country'), 7)).t;
@@ -109,6 +132,8 @@
       head.countryW = (await ocrText(worker, crop([x0, y0 - hh * 0.15, x1, Math.min(cv.height, y1 + hh * 0.35)], 3, 'countryW'), 7, opts.countryW.chars)).t;
     }
     if (BOX.country2) head.country2 = (await ocrText(worker, crop('country2'), 7)).t; // どちらの国名を使うかは判定（SpJudge）で決める
+    // EGB（2026-11-20）：国名の欄の下の罫線のかけらを「ーー」と読み、「日本」が「目本」「上を」になる → ブロックとして読み直したもの（psm 6）も残す（判定で使う）
+    if (/^EGB\d/.test(head.model)) { head.country6 = (await ocrText(worker, crop('country', 3, 'country6'), 6)).t; if (BOX.country2) head.country26 = (await ocrText(worker, crop('country2', 3, 'country26'), 6)).t; }
     // 客先名：日本語の文字の間の空白は消し、英語の単語の間の空白は1つ残す（Amada (India) Pvt. Ltd. など）
     const nameText = r => String(r.raw || '').normalize('NFKC').replace(/\s+/g, ' ').trim().replace(/ (?![!-~])|(?<![!-~]) /g, '');
     head.contract = nameText(await ocrText(worker, crop('contract', 3), 7));
@@ -122,24 +147,43 @@
     const nameRight = r => { for (let x = Math.round(r.lx0 + 40 * k1); x < r.lx1 - 4; x++) if (R.dark(img, x, r.y0 + 1, x + 1, r.y1 - 1) > 0.95 || R.dark(img, x - 1, r.y0 + 1, x + 2, r.y1 - 1) > 0.9) return x; return r.lx1; };
     // HG の様式（2026-10-24）：行全体を読むと読み違いが多いので、オプション名の欄だけを3倍に拡大して1行として読む（HRB は右の欄に SF1224 などがあるので行全体のまま）
     const hg = /^HG\d/.test(N(head.model).toUpperCase());
+    // EGB の様式（2026-11-20）：HG と同じく、オプション名の欄だけを3倍に拡大して読む（行の右の欄は説明。2行の行は複数行として読む）
+    const egb = /^EGB\d/.test(N(head.model).toUpperCase()), byName = hg || egb;
     const nameCanvas = (r, sc) => { const x1 = nameRight(r), W = Math.max(4, x1 - r.lx0 - 4), H = Math.max(4, r.y1 - r.y0 - 2), c = document.createElement('canvas');
       c.width = Math.round(W * sc); c.height = Math.round(H * sc); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = true;
       g.drawImage(cv, r.lx0 + 2, r.y0 + 1, W, H, 0, 0, c.width, c.height); return c; };
+    // 白黒にした名前の欄（th より暗い所を黒、ほかを白。白黒のスキャンで字がつぶれたときの読み直し用。2026-11-20 EGB）
+    const nameCanvasBin = (r, sc, th) => { const c = nameCanvas(r, sc), g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height);
+      for (let i = 0; i < d.data.length; i += 4) { const v = (d.data[i] + d.data[i + 1] + d.data[i + 2]) / 3 < th ? 0 : 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; }
+      g.putImageData(d, 0, 0); return c; };
     // 横向きの様式は行が細く文字が小さいので、大きめに拡大して読む（2026-10-22）
     const dotScale = form === 'landscape' ? 3 : 2;
     const rowKey = r => Math.round(r.lx0) + ':' + Math.round(r.y0), dotText = new Map(); // ● の行の読み取りを「別紙仕様書」探しで使い回す
-    const rowOcr = async r => hg ? (await ocrText(worker, nameCanvas(r, 3), 7)).t : (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, dotScale), 6)).t;
+    const rowH0 = (() => { const hs = dotRows.map(r => r.y1 - r.y0).sort((a, b) => a - b); return hs.length ? hs[hs.length >> 1] : 0; })();
+    const rowOcr = async r => byName ? (await ocrText(worker, nameCanvas(r, 3), egb && r.y1 - r.y0 > rowH0 * 1.5 ? 6 : 7)).t : (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, dotScale), 6)).t;
     for (const r of dotRows) {
       let t = await rowOcr(r);
+      // EGB：名前の欄が幅の狭いもの（特殊仕様の「①」〜「⑤」だけの欄）は、特殊仕様の行の印を付ける（右の欄の OP 名は特殊仕様の「1」で足りる。懸案3）
+      const narrow = egb && nameRight(r) - r.lx0 < 45 * k1;
+      // EGB：名前の欄が何も読めなかった行（「モジュラーツーリングシステム（AMTS-Ⅲ）【標準】」など）は、行全体を読み直す（2026-11-20）
+      if (egb && N(t).length < 2) t = (await ocrText(worker, R.cellCanvas(cv, img, r.lx0, r.y0 + k1, r.lx1, r.y1 - k1, 3), 6)).t;
+      if (egb && N(t).length < 2) t = (await ocrText(worker, nameCanvasBin(r, 3, 170), 6)).t; // それでも読めなければ白黒にして
+      // opts.unsure：大事な行なのに中身が決まらないとき（EGB の中間板の A／M、角度センサーの軸数など）は、白黒にして倍率を変えて読み直し、決まった読みを使う
+      if (egb && opts.unsure && opts.unsure(t)) for (const [sc, th] of [[3, 170], [4, 170], [2, 150]]) { const t2 = (await ocrText(worker, nameCanvasBin(r, sc, th), 7)).t; if (!opts.unsure(t2)) { t = t2; break; } }
       // opts.known：OP にも、よくある項目にも当たらない行は読み違いの見込みが高いので、項目名の欄だけを3倍にしてもう1回読み、両方の文字で判定する（2026-10-27：「オートクラウニング」→「2ドウララニジグ」）
-      if (!hg && opts.known && !opts.known(t)) t += ' ' + (await ocrText(worker, nameCanvas(r, 3), 7)).t;
+      if (!byName && opts.known && !opts.known(t)) t += ' ' + (await ocrText(worker, nameCanvas(r, 3), 7)).t;
+      if (narrow) t = '①' + t;
       dots.push(t); dotText.set(rowKey(r), t);
     }
     // 備考・製造指示追記情報：表の右側の下半分を読む（横向きの様式は「製造指示追記情報」が表の右の真ん中あたりにあるので、上の 1/4 から）
-    const mr = R.rows(img, lines, main), tableRight = mr.length ? Math.max(...mr.map(r => r.lx1)) : cv.width / 2;
+    const mr = R.rows(img, lines, main);
+    // EGB は表が左右2つの様式があり、備考・製造指示追記情報はいちばん右の表のさらに右にある（2026-11-20）
+    const tableRight = egb ? Math.max(cv.width / 2, ...groups.map(g => Math.max(0, ...R.rows(img, lines, g).map(r => r.lx1)))) : mr.length ? Math.max(...mr.map(r => r.lx1)) : cv.width / 2;
     const ny = Math.round(gy + (cv.height - gy) * (form === 'landscape' ? 0.25 : 0.4));
     // opts.noNotes：備考を使わない機種（HG の判定は備考を見ない）は読まない（2026-10-27 時間短縮）
-    const notes = opts.noNotes ? '' : (await ocrText(worker, R.eraseLines(cv, img, lv, tableRight + 6 * k1, ny, fR - 4 * k1, cv.height - 30 * k1, 2 / k1 * 1.3), 6)).t;
+    let notes = opts.noNotes ? '' : (await ocrText(worker, R.eraseLines(cv, img, lv, tableRight + 6 * k1, ny, fR - 4 * k1, cv.height - 30 * k1, 2 / k1 * 1.3), 6)).t;
+    // EGB：右下の「備考」は字が小さく、大きな欄の中では読み落とす（「サービス手配でSF1548H手配有」）ので、下の部分だけ大きくしてもう1回読む（2026-11-20）
+    if (egb && !opts.noNotes) notes += ' ' + (await ocrText(worker, R.eraseLines(cv, img, lv, tableRight + 6 * k1, Math.round(cv.height * 0.72), fR - 4 * k1, Math.round(cv.height * 0.93), 3 / k1 * 1.3), 6)).t;
     // 印を付けるための位置（2026-10-24 ユーザー指示：読み解き済みの PDF に、実装の行を黄色で塗り、条件で付けた OP を赤字で書く）
     // rows：● の行（dots と同じ順）のオプション名の欄（行の中の最初の区切り線まで）／slots：オプションの表の最終行のあとの空いた行
     // 行の記入の量：欄の区切り線（縦にほぼ全部が黒い列）は数えない（空いた行でも区切り線があると「記入あり」に見えていた。2026-10-24）
@@ -178,6 +222,26 @@
         if (b >= 0 && !geom.anchor) geom.anchor = a;
       }
     };
+    // 備考・製造指示追記情報の行：表の右の欄を横に見て、文字のある段を1行ずつ切り出して読む（呼んだときだけ）
+    const noteLines = async () => {
+      const x0 = Math.round(tableRight + 6 * k1), x1 = Math.round(fR - 4 * k1), y0 = Math.round(gy), y1 = Math.round(cv.height - 30 * k1), W = x1 - x0, out = [];
+      const cnt = []; for (let y = y0; y < y1; y++) { let n = 0; for (let x = x0; x < x1; x++) n += img.b[y * img.w + x]; cnt.push(n > W * 0.5 ? 0 : n); } // 罫線（横に長い黒）は数えない
+      let st = -1;
+      for (let i = 0; i <= cnt.length; i++) {
+        const ink = i < cnt.length && cnt[i] > 2;
+        if (ink && st < 0) st = i;
+        if (!ink && st >= 0) {
+          const a = y0 + st, b = y0 + i; st = -1;
+          if (b - a < 8 * k1 || b - a > 40 * k1) continue;
+          let l = x1, r = x0; for (let x = x0; x < x1; x++) { let n = 0; for (let y = a; y < b; y++) n += img.b[y * img.w + x]; if (n > 0 && n < (b - a) * 0.9) { if (x < l) l = x; r = x; } }
+          if (r - l < 20 * k1) continue;
+          out.push({ x0: l - 3, y0: a - 2, x1: r + 3, y1: b + 2 });
+          if (out.length >= 24) break;
+        }
+      }
+      for (const o of out) o.t = (await ocrText(worker, R.eraseLines(cv, img, lv, o.x0, o.y0, o.x1, o.y1, 2 / k1 * 1.3), 7)).t;
+      return out;
+    };
     const geom = {
       w: cv.width, h: cv.height,
       rows: dotRows.map(r => ({ x0: r.lx0, y0: r.y0, x1: nameRight(r), y1: r.y1 })),
@@ -185,6 +249,8 @@
       rowH: mr.length ? mr.map(r => r.y1 - r.y0).sort((a, b) => a - b)[mr.length >> 1] : 26 * k1,
       bottom: mr.length ? mr[mr.length - 1].y1 : cv.height - 60 * k1, left: mr.length ? mr[0].lx0 : fL,
       anchor: null, areas: [], tried: [], locate, // tried：「別紙仕様書」を探して読んだ行（確認用）。anchor・areas は locate() で決まる
+      model: box('model'), // 機種名の欄（EGB の AE の機械は機種名の「AE」の部分をマーキング。2026-11-20）
+      noteLines, // 備考・製造指示追記情報の1行ずつの位置と文字（EGB：備考に OP の記載があって ● が無いとき、その行をマーキング。2026-11-20）
     };
     return { head, dots, notes, rotated: cv !== cv0, form, geom, canvas: opts.keepCanvas ? cv : undefined };
   }

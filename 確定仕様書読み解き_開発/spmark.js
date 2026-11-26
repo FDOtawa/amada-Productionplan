@@ -9,6 +9,8 @@
   // 条件の OP：● が1つも無くても「1」になる OP。そのほかは、その行だけで「1」になる行と、その行を外すと「1」が消える行を根拠とする
   function plan(p, judge, ops) {
     const row = judge(p); if (!row || row.skip) return null;
+    // EGB（2026-11-20）：塗る行と欄外の赤字は判定（judgeEGB）が決める（3点ゲージ・ｸﾗﾝﾌﾟ・TAB などは ● の行を塗ったうえで欄外にも書く）
+    if (row.plan) return { hl: row.plan.hl.slice(), cond: row.plan.cond.map(t => LABEL[t] || t), model: row.plan.model || '', modelText: (p.head || {}).model || '', notes: row.plan.notes || [] };
     const dots = p.dots || [], on = Object.keys(row.f).filter(k => row.f[k]).map(Number);
     const bare = judge({ ...p, dots: [] }).f || {}, hl = new Set(), cond = [];
     for (const k of on) {
@@ -27,6 +29,18 @@
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.save(); g.globalCompositeOperation = 'multiply'; g.fillStyle = MARK; // 文字が透けるように「乗算」で塗る
     for (const i of pl.hl) { const r = geom.rows[i]; if (r) g.fillRect(r.x0 + 2, r.y0 + 2, r.x1 - r.x0 - 4, r.y1 - r.y0 - 3); }
+    // 備考・製造指示追記情報の行（EGB：OP の記載があって ● が無い行。後日担当が客先へ確認する）
+    for (const r of pl.noteBoxes || []) g.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+    // 機種名の「AE」の部分（EGB の AE の機械は IO。2026-11-20）：機種名の欄の文字の幅から、後ろの記号の分だけ塗る
+    if (pl.model && geom.model) {
+      const [x0, y0, x1, y1] = geom.model.map(Math.round), d = g.getImageData(x0, y0, x1 - x0, y1 - y0).data, W = x1 - x0, H = y1 - y0;
+      // 文字のある列のかたまり（間が字の高さの0.6倍より狭いものはつなぐ）のうち、いちばん左のものを機種名の文字とみなす（欄の右の罫線のかけらなどを外す）
+      const ink = []; for (let x = 0; x < W; x++) { let n = 0; for (let y = 0; y < H; y++) { const k = (y * W + x) * 4; if (d[k] + d[k + 1] + d[k + 2] < 300) n++; } ink.push(n > 0 && n < H * 0.8); }
+      const runs = []; for (let x = 0; x < W; x++) if (ink[x]) { const q = runs[runs.length - 1]; if (q && x - q[1] < H * 0.6) q[1] = x; else runs.push([x, x]); }
+      const big = runs.filter(q => q[1] - q[0] > H * 0.8), [l, r] = big.length ? big[0] : [-1, -1];
+      const txt = String(pl.modelText || '').replace(/\s+/g, ''), k = txt.lastIndexOf(pl.model);
+      if (l >= 0 && r > l && k > 0) { const cw = (r - l) / txt.length, a = x0 + l + cw * k - 3; g.fillRect(a, y0 + 2, cw * pl.model.length + 6, H - 4); }
+    }
     g.restore();
     if (!pl.cond.length) return;
     // 赤字（2026-10-24 ユーザー指示）：「別紙仕様書」のある表の最後の項目から1行あけて、1行に1つずつ。

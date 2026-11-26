@@ -1,0 +1,1123 @@
+[
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303ARE EXP",
+  "ser": "13329061",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "ARE",
+   "BI-S2",
+   "WOP42",
+   "SG軸",
+   "Lｼﾌﾄ",
+   "ｸﾗﾝﾌﾟ",
+   "ATC付きﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303ARE EXP",
+  "ser": "13329062",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "ARE",
+   "BI-S2",
+   "WOP42",
+   "SG軸",
+   "Lｼﾌﾄ",
+   "ｸﾗﾝﾌﾟ",
+   "ATC付きﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303ARE DMS",
+  "ser": "13329063",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "ARE",
+   "BI-S2",
+   "WOP42",
+   "SG軸",
+   "Lｼﾌﾄ",
+   "ｸﾗﾝﾌﾟ",
+   "ATC付きﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E DMS",
+  "ser": "13377358",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S2",
+   "AS-01",
+   "Lｼﾌﾄ",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ",
+   "特殊仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E DMS",
+  "ser": "13377361",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "SF追従装置",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E DMS",
+  "ser": "13377362",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377363",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "AS-01",
+   "Y3"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377364",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377365",
+  "shimuke": "EXP",
+  "country": "オーストラリア",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377366",
+  "shimuke": "EXP",
+  "country": "オーストラリア",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377367",
+  "shimuke": "EXP",
+  "country": "カナダ",
+  "ops": [
+   "E",
+   "AS-01",
+   "Y3",
+   "IO"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377368",
+  "shimuke": "EXP",
+  "country": "カナダ",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E EXP",
+  "ser": "13377369",
+  "shimuke": "EXP",
+  "country": "タイ",
+  "ops": [
+   "E",
+   "WOP42",
+   "Y3",
+   "ｸﾗﾝﾌﾟ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303E DMS",
+  "ser": "13377386",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE DMS",
+  "ser": "13399279",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "SF追従装置",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE DMS",
+  "ser": "13399280",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE DMS",
+  "ser": "13399281",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": "備考欄記載あり"
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE DMS",
+  "ser": "13399282",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE EXP",
+  "ser": "13399283",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE EXP",
+  "ser": "13399285",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "WOP42",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE EXP",
+  "ser": "13399286",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE EXP",
+  "ser": "13399287",
+  "shimuke": "EXP",
+  "country": "カナダ",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "20P/AF",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB1303AE DMS",
+  "ser": "13399302",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E EXP",
+  "ser": "41077232",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "E",
+   "WOP42",
+   "ﾂｷｱﾃﾓﾆﾀ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E DMS",
+  "ser": "41077233",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E DMS",
+  "ser": "41077234",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E EXP",
+  "ser": "41077235",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "AS-01",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E EXP",
+  "ser": "41077240",
+  "shimuke": "EXP",
+  "country": "台湾",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E EXP",
+  "ser": "41077241",
+  "shimuke": "EXP",
+  "country": "台湾",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E DMS",
+  "ser": "41077242",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB4010E DMS",
+  "ser": "41077243",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013RE DMS",
+  "ser": "60109110",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013RE DMS",
+  "ser": "60109123",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013RE DMS",
+  "ser": "60109124",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013RE EXP",
+  "ser": "60109125",
+  "shimuke": "EXP",
+  "country": "韓国",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE DMS",
+  "ser": "60299219",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE DMS",
+  "ser": "60299220",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE DMS",
+  "ser": "60299221",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE DMS",
+  "ser": "60299222",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE EXP",
+  "ser": "60299223",
+  "shimuke": "EXP",
+  "country": "ブラジル",
+  "ops": [
+   "AE",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE EXP",
+  "ser": "60299224",
+  "shimuke": "EXP",
+  "country": "台湾",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020AE DMS",
+  "ser": "60299236",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "AE",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "ATC仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013E EXP",
+  "ser": "61377174",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "E",
+   "WOP42",
+   "ﾂｷｱﾃﾓﾆﾀ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013E EXP",
+  "ser": "61377175",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "E",
+   "WOP42",
+   "ﾂｷｱﾃﾓﾆﾀ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013E DMS",
+  "ser": "61377176",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ",
+   "特殊仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013E DMS",
+  "ser": "61377177",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013E DMS",
+  "ser": "61377178",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6013E EXP",
+  "ser": "61377179",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "AS-01",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E EXP",
+  "ser": "62077182",
+  "shimuke": "EXP",
+  "country": "マレーシア",
+  "ops": [
+   "E",
+   "AS-01",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E EXP",
+  "ser": "62077183",
+  "shimuke": "EXP",
+  "country": "マレーシア",
+  "ops": [
+   "E",
+   "AS-01",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E DMS",
+  "ser": "62077185",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ",
+   "特殊仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E DMS",
+  "ser": "62077186",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E DMS",
+  "ser": "62077187",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01",
+   "ｸﾗﾝﾌﾟ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E EXP",
+  "ser": "62077188",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E EXP",
+  "ser": "62077189",
+  "shimuke": "EXP",
+  "country": "タイ",
+  "ops": [
+   "E",
+   "WOP42",
+   "Y3",
+   "ｸﾗﾝﾌﾟ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E DMS",
+  "ser": "62077201",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01",
+   "ｸﾗﾝﾌﾟ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB6020E DMS",
+  "ser": "62077202",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E EXP",
+  "ser": "82577309",
+  "shimuke": "EXP",
+  "country": "フィリピン",
+  "ops": [
+   "E",
+   "AS-01",
+   "Lｼﾌﾄ",
+   "手動ｽﾗｲﾄﾞ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "特殊仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E DMS",
+  "ser": "82577312",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E DMS",
+  "ser": "82577313",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01",
+   "ｸﾗﾝﾌﾟ",
+   "特殊仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E DMS",
+  "ser": "82577314",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S2",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E EXP",
+  "ser": "82577315",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "E",
+   "WOP42",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E EXP",
+  "ser": "82577316",
+  "shimuke": "EXP",
+  "country": "中国",
+  "ops": [
+   "E",
+   "WOP42",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E EXP",
+  "ser": "82577317",
+  "shimuke": "EXP",
+  "country": "マレーシア",
+  "ops": [
+   "E",
+   "AS-01",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E DMS",
+  "ser": "82577319",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E DMS",
+  "ser": "82577320",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "Y3",
+   "AF自動ｽﾗｲﾄﾞ",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "ｸﾗﾝﾌﾟ",
+   "IO",
+   "ﾓﾊﾞｲﾙHMI(TAB)",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年1月",
+  "name": "EGB8025E DMS",
+  "ser": "82577321",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "ｸﾗﾝﾌﾟ",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ }
+]

@@ -35,10 +35,12 @@ once('.note.info{background:#FFF7DA;color:#5A4500;border:1px solid #F0D27A}', ''
 src = lambda n: (here / n).read_text(encoding='utf-8').strip()
 ops = [{'no': o['no'], 'grp': o['grp'], 'name': o['name']} for o in json.load(open(here / 'oplist.json', encoding='utf-8'))]
 ops_hg = [{'no': o['no'], 'grp': o['grp'], 'name': o['name']} for o in json.load(open(here / 'oplist_hg.json', encoding='utf-8'))]  # HG（2026-10-24）
+ops_egb = [{'no': o['no'], 'grp': o['grp'], 'name': o['name']} for o in json.load(open(here / 'oplist_egb.json', encoding='utf-8'))]  # EGB（2026-11-20）
 engine = ('/* SP_ENGINE_BEGIN（確定仕様書読み解き_開発 から apply_engine.py で埋め込み。直すときは向こうを直して流し直す） */\n'
           + src('spreader.js') + '\n' + src('sppage.js') + '\n' + src('spjudge.js') + '\n' + src('spmark.js') + '\n'  # spmark.js：読み解き済みの PDF（2026-10-24）
           + '// OP一覧（デスクトップ「HRB読み解き.xlsx」の OP一覧。帳票の列の順・区分）\nconst SP_HRB_OPS = ' + json.dumps(ops, ensure_ascii=False) + ';\n'
           + '// HG の OP一覧（デスクトップ「確定仕様書読み解き」の HG確定仕様書読み解き.xlsx。2026-10-24）\nconst SP_HG_OPS = ' + json.dumps(ops_hg, ensure_ascii=False) + ';\n'
+          + '// EGB の OP一覧（EGB確定仕様書読み解きルール.xlsx の OP表と懸案の回答。ｾｲｷﾞｮは E・RE・AE・ARE の4列。2026-11-20）\nconst SP_EGB_OPS = ' + json.dumps(ops_egb, ensure_ascii=False) + ';\n'
           + src('sp_app.js') + '\n/* SP_ENGINE_END */')
 if '/* SP_ENGINE_BEGIN' in s:
     s = re.sub(r'/\* SP_ENGINE_BEGIN[\s\S]*?/\* SP_ENGINE_END \*/', lambda m: engine, s)
@@ -60,4 +62,7 @@ once("  try { downloadXlsx(name + '.xlsx', buildWorkbook(XLSX, lastRows, PROCESS
      "  try { const job = curJob(); downloadXlsx(name + '.xlsx', job ? job.build() : buildWorkbook(XLSX, lastRows, PROCESSORS[machine]));")
 once("  clearTimeout(showDone.t); showDone.t = setTimeout(() => d.hidden = true, 6000);\n  resetAll();",
      "  clearTimeout(showDone.t); showDone.t = setTimeout(() => d.hidden = true, 6000);\n  const job = curJob();\n  if (job) { saveJob = null; job.done(); return; } // 確定仕様書読み解き：そのページの取り込み・機種をクリア\n  resetAll();")
+# 5) EGB の読み解きを選べるように（2026-11-20）
+once("const SP_WIP = new Set(['EGB', '複合機', 'レーザ']); // HG は 2026-10-24 に読み解きを組み込んで解除",
+     "const SP_WIP = new Set(['複合機', 'レーザ']); // HG は 2026-10-24、EGB は 2026-11-20 に読み解きを組み込んで解除")
 p.write_text(s, encoding='utf-8'); print('ok', len(s))
