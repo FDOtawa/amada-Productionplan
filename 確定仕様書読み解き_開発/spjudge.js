@@ -231,14 +231,14 @@
   }
   function egbTags(raw) {
     const s = String(raw || ''), t = EGB_RE.norm(s), m = new Set();
-    if (/^[①-⑳]/.test(s.trim()) || /^特殊仕様[①-⑳]/.test(t) || /^\(?\d{1,2}\)?(?![0-9点京人PM.])/.test(t)) { m.add('SPC'); return m; } // 特殊仕様①〜⑳の行は特殊仕様＝1 で足りる（懸案3）。「①」を「1」と読むこともある
+    if (/^[①-⑳]/.test(s.trim()) || /^特殊仕様[①-⑳]/.test(t) || /^\(?\d{1,2}\)?(?![0-9点京占店人PM.]|.?ゲ)/.test(t)) { m.add('SPC'); return m; } // 特殊仕様①〜⑳の行は特殊仕様＝1 で足りる（懸案3）。「①」を「1」と読むこともある
     if (/^制御|ASSY|SSY\(?[1IL\[][0O]\)?/.test(t)) { m.add('CASY'); return m; } // 制御ASSY（IO）
     if (/AR[CS]E/.test(t)) return m; // ARce（ARse）HMIパック・4ieパックは印も帳票も出さない（懸案 全体3）
     // 特殊仕様の「①」を読めずに字のかけら（「すす菩語昌ロボットIF」）になることがあるので、角度センサー・ロボットIF は行の頭の近くにあるときだけ
     const head = re => { const i = t.search(re); return i >= 0 && i <= 4; };
     if (head(EGB_RE.bis) && !/ワーク/.test(t)) m.add(EGB_RE.two.test(t) ? 'BIS2' : 'BIS1'); // 軸数が読めないときは1軸
     if (/[A-Z]S-?[0O][1IL)\]]|AS-?0|\(A[S5]?-?[0O][1IL]\)|レーザ|安全[装六碑]/.test(t)) m.add('AS01');
-    if (/[3三][点京].?ゲ|点ゲージ/.test(t)) m.add('G3');
+    if (/[3三][点京占店]?.?ゲ.?ジ|[点占]ゲージ/.test(t)) m.add('G3'); // 「3点」を「3京」「3占」と読むことがある（2026-11-26 2027年2月 60109127・28）
     if (/Y3/.test(t)) m.add('Y3'); // 「Y3軸」のときだけ（6軸・4軸のバックゲージは付けない。懸案4）
     if (/([LしL]シ.?[フブプ]ト|LS軸)/.test(t) && !/Y3|ワークセンサ|標準|無|脱着|突|ツキアテ|用|対応|軸仕/.test(t)) m.add('LS'); // 「バックゲージL軸仕様．Y3軸対応Lシフト3軸」は Y3 の行
     if (/スライド.?[フブ]|スライドフ/.test(t) && !/材料/.test(t)) m.add(/手[動勤]/.test(t) ? 'MF' : 'AF');

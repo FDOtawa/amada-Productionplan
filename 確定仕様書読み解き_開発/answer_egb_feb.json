@@ -1,0 +1,238 @@
+[
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E EXP",
+  "ser": "41077236",
+  "shimuke": "EXP",
+  "country": "イスラエル",
+  "ops": [
+   "E",
+   "AS-01",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E EXP",
+  "ser": "41077237",
+  "shimuke": "EXP",
+  "country": "イスラエル",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E DMS",
+  "ser": "41077238",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E DMS",
+  "ser": "41077239",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E DMS",
+  "ser": "41077244",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "BIﾂｰﾙﾅﾋﾞ",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E DMS",
+  "ser": "41077245",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E EXP",
+  "ser": "41077246",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E EXP",
+  "ser": "41077247",
+  "shimuke": "EXP",
+  "country": "イスラエル",
+  "ops": [
+   "E",
+   "AS-01",
+   "ATSAｴﾙｺﾞﾉﾐｸｽ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB4010E EXP",
+  "ser": "41077258",
+  "shimuke": "EXP",
+  "country": "台湾",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013RE DMS",
+  "ser": "60109126",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013RE DMS",
+  "ser": "60109127",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様",
+   "特殊仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013RE DMS",
+  "ser": "60109128",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013RE EXP",
+  "ser": "60109129",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "RE",
+   "BI-S1",
+   "WOP42",
+   "SG軸",
+   "ｸﾗﾝﾌﾟ",
+   "ﾛﾎﾞｯﾄ仕様"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013E DMS",
+  "ser": "61377180",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "ﾂｷｱﾃﾓﾆﾀ",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013E DMS",
+  "ser": "61377181",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013E DMS",
+  "ser": "61377182",
+  "shimuke": "DMS",
+  "country": "日本",
+  "ops": [
+   "E",
+   "BI-S1",
+   "AS-01",
+   "BIﾂｰﾙﾅﾋﾞ"
+  ],
+  "biko": ""
+ },
+ {
+  "ym": "2027年2月",
+  "name": "EGB6013E EXP",
+  "ser": "61377183",
+  "shimuke": "EXP",
+  "country": "米国",
+  "ops": [
+   "E",
+   "AS-01"
+  ],
+  "biko": ""
+ }
+]

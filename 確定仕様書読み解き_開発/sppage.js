@@ -104,6 +104,8 @@
     { const r = await ocrText(worker, crop('ym'), 7); const m = r.t.match(/(20)?(\d\d)\D{0,2}(\d{1,2})月/); head.ym = m ? `20${m[2]}年${+m[3]}月` : ''; head.ymRaw = r.t; }
     { const r = await ocrText(worker, crop('ser'), 7, AN); const m = r.t.match(/[A-Z]{0,3}\d{5,8}/); head.ser = m ? m[0] : r.t; }
     { const r = await ocrText(worker, crop('model'), 7, AN + '-._'); const t = r.t.replace(/^[^A-Z]*?[I1L]?RB(?=C?\d)/, 'HRB'), m = t.match(/(HRBC|HRB|SRB|HG|EGB)\d{3,4}[A-Z]*/); head.model = m ? m[0] : r.t; }
+    // EGB の機種名の数字4桁を英字に読んだとき（「EGB401OE」＝0 を O。2026-11-26 2027年2月 41077247 を EGB 以外で飛ばしていた）は数字に直す
+    head.model = String(head.model || '').replace(/^E[G6]B([0-9OoDIl]{4})(?=[A-Z]|$)/, (x, d) => 'EGB' + d.replace(/[OoD]/g, '0').replace(/[Il]/g, '1'));
     // EGB（2026-11-20）：1行として読むと機種名の後ろの「AE」を落とすことがある（「EGB1303AE」→「EGB1303」）ので、1語として読み直して長い方を使う。
     // シリアル（数字8桁）は英字に読むことがある（「60299223」→「0UZ9ZZ3」）ので、数字だけで読み直す
     if (/^E[G6]B\d/.test(head.model) || /^E[G6]B\d/.test(N(head.model))) {
