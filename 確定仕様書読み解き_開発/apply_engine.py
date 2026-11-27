@@ -60,7 +60,8 @@ once("  const data = buildWorkbook(XLSX, lastRows, PROCESSORS[machine]);\n  if (
      "  const job = curJob(), data = job ? job.build() : buildWorkbook(XLSX, lastRows, PROCESSORS[machine]);\n  if (canPickDir) {")
 once("  try { downloadXlsx(name + '.xlsx', buildWorkbook(XLSX, lastRows, PROCESSORS[machine]));",
      "  try { const job = curJob(); downloadXlsx(name + '.xlsx', job ? job.build() : buildWorkbook(XLSX, lastRows, PROCESSORS[machine]));")
-once("  clearTimeout(showDone.t); showDone.t = setTimeout(() => d.hidden = true, 6000);\n  resetAll();",
+if 'if (job) { saveJob = null; job.done(); return; }' not in s:  # 2026-11-27 に表示の時間の行を直したので、組み込み済みなら飛ばす
+  once("  clearTimeout(showDone.t); showDone.t = setTimeout(() => d.hidden = true, 6000);\n  resetAll();",
      "  clearTimeout(showDone.t); showDone.t = setTimeout(() => d.hidden = true, 6000);\n  const job = curJob();\n  if (job) { saveJob = null; job.done(); return; } // 確定仕様書読み解き：そのページの取り込み・機種をクリア\n  resetAll();")
 # 5) EGB の読み解きを選べるように（2026-11-20）
 once("const SP_WIP = new Set(['EGB', '複合機', 'レーザ']); // HG は 2026-10-24 に読み解きを組み込んで解除",
